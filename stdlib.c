@@ -94,6 +94,7 @@ char toUpper(char ch){
 		[','] = '<',
 		['.'] = '>',
 		['/'] = '?',
+		['\\'] = '|',
 	};
 	if (ch<'a'||ch>'z')
 		return upperTable[ch];
@@ -121,6 +122,7 @@ char toLower(char ch){
 		['<'] = ',',
 		['>'] = '.',
 		['?'] = '/',
+		['|'] = '\\'
 	};
 	if (ch<'A'||ch>'Z')
 		return lowerTable[ch];

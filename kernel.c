@@ -19,6 +19,8 @@ void kentry(void){
 		return;
 	}
 	cursor_enable(0x00, 15);
+	printf("cpu vendor: %s\n", blargs->vendorid);
+	printf("cpu product name: %s\n", blargs->productname);
 	printf("drive number: %p\n", (void*)blargs->bootdrive);
 	while (1){};
 	return;	
@@ -57,6 +59,15 @@ void keyboard_interrupt(void){
 			cmdline[0] = 0;
 			break;
 	}
+	return;
+}
+void reboot(void){
+	__asm__ volatile("cli");
+	uint8_t good = 0x02;
+	while (good&0x2)
+		good = inb(0x64);
+	outb(0x64, 0xFE);
+	__asm__ volatile("hlt");
 	return;
 }
 void outb(uint16_t port, uint8_t value){

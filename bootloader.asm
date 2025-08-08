@@ -43,6 +43,31 @@ mov word [0x7E00+24], 23
 mov word [0x7E00+26], 0x7E00
 mov word [0x7E00+28], 0x0
 lgdt [0x7E00+24]
+xor eax, eax
+cpuid
+mov dword [0x2000+4], ebx
+mov dword [0x2000+8], edx
+mov dword [0x2000+12], ecx
+mov byte [0x2000+16], 0
+mov eax, 0x80000002
+cpuid
+mov dword [0x2000+17], eax
+mov dword [0x2000+21], ebx
+mov dword [0x2000+25], ecx
+mov dword [0x2000+29], edx
+mov eax, 0x80000003
+cpuid
+mov dword [0x2000+33], eax
+mov dword [0x2000+37], ebx
+mov dword [0x2000+41], ecx
+mov dword [0x2000+45], edx
+mov eax, 0x80000004
+cpuid
+mov dword [0x2000+49], eax
+mov dword [0x2000+53], ebx
+mov dword [0x2000+57], ecx
+mov dword [0x2000+61], edx
+mov byte [0x2000+65], 0
 xor ah, ah
 mov al, 0x03
 int 0x10
@@ -90,8 +115,8 @@ int 0x10
 mov al, 10
 int 0x10
 ret
-bootmsg db "booting extended x86 protected bootloader", 0
-readerrmsg db "failed to read protected bootloader", 0
+bootmsg db "booting...", 0
+readerrmsg db "failed to read kernel", 0
 times 510-($-$$) db 0
 dw 0xAA55
 

@@ -28,3 +28,7 @@ void echocmd(char* cmd, size_t cmdlen){
 	print(cmd);
 	return;
 }
+void rebootcmd(char* cmd, size_t cmdlen){
+	reboot();
+	return;
+}
