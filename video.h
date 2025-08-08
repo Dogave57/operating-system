@@ -6,4 +6,5 @@ void print(const char* str);
 void printf(const char* fmt, ...);
 void putchar(char ch);
 void puthex(unsigned char hex);
+void clear();
 #endif

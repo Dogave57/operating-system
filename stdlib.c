@@ -1,6 +1,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "stdlib.h"
+int itoa(int num, char* buf, size_t bufmax);
+int atoi(char* buf);
+size_t strlen(char* str);
+char toUpper(char ch);
+char toLower(char ch);
 int itoa(int num, char* buf, size_t bufmax){
 	if (!buf||bufmax<1)
 		return -1;
@@ -34,6 +39,38 @@ int atoi(char* buf){
 		res = res*10+digit;
 	}
 	return res;
+}
+size_t strlen(char* str){
+	if (!str)
+		return 0;
+	size_t len = 0;
+	for (;str[len];len++);
+	return len;
+}
+int memcmp(void* buf1, void* buf2, size_t size){
+	if (!buf1||!buf2||size<1)
+		return 1;
+	unsigned char isaligned = size%4;
+	for (size_t i = 0;i<size;){
+		/*if (isaligned){
+			if (*(unsigned int*)((unsigned char*)buf1+i)!=*(unsigned int*)((unsigned char*)buf2+i))
+				return 1;
+			i+=4;
+			continue;
+		}*/
+		if (*((unsigned char*)buf1+i)!=*((unsigned char*)buf2+i))
+			return 1;
+		i++;
+	}
+	return 0;
+}
+int memset(void* buf, unsigned char val, size_t size){
+	if (!buf)
+		return -1;
+	for (size_t i = 0;i<size;i++){
+		*((unsigned char*)buf+i) = val;
+	}
+	return 0;
 }
 char toUpper(char ch){
 	static const char upperTable[]={

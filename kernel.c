@@ -3,15 +3,22 @@
 #include "interrupt.h"
 #include "stdlib.h"
 #include "keyboard.h"
+#include "commands.h"
+#include "cursor.h"
+#include "panic.h"
 #include "kernel.h"
 unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
+char cmdline[256] = {0};
+size_t cmdlen = 0;
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
-	idt_init();
-	print("x86 protected mode bootloader\n");
-	print("test\n");
-	printf("%d %s %c\n", 1234, "toilet", 'a');
+	if (idt_init()!=0){
+		panic("failed to load idt\n");
+		__asm__ volatile("hlt");
+		return;
+	}
+	cursor_enable(0x00, 15);
 	printf("drive number: %p\n", (void*)blargs->bootdrive);
 	while (1){};
 	return;	
@@ -38,6 +45,18 @@ void keyboard_interrupt(void){
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
 	putchar(ascii);
+	if (cmdlen<255){
+		cmdline[cmdlen] = ascii;
+		cmdlen++;
+	}
+	switch(ascii){
+		case '\n':
+			cmdline[cmdlen] = 0;
+			executecmd(cmdline, cmdlen);
+			cmdlen = 0;
+			cmdline[0] = 0;
+			break;
+	}
 	return;
 }
 void outb(uint16_t port, uint8_t value){

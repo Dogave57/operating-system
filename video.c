@@ -1,10 +1,13 @@
 #include <stdarg.h>
 #include <stdint.h>
-#include "video.h"
+#include "cursor.h"
 #include "stdlib.h"
+#include "video.h"
 unsigned int vgaIndex = 0;
 void print(const char* str);
 void putchar(char ch);
+void puthex(unsigned char hex);
+void clear();
 void print(const char* str){
 	if (!str)
 		str = "Invalid string\n";
@@ -73,6 +76,7 @@ void putchar(char ch){
 			vgaIndex+=2;
 		break;
 	}
+	cursor_setpos(vgaIndex/2);
 	return;
 }
 void puthex(unsigned char hex){
@@ -82,5 +86,13 @@ void puthex(unsigned char hex){
 		putchar('0'+hex);
 	else
 		putchar('a'+hex-10);
+	return;
+}
+void clear(void){
+	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
+		*((volatile unsigned char*)0xB8000+i) = ' ';
+	}
+	vgaIndex = 0;
+	cursor_setpos(0);
 	return;
 }
