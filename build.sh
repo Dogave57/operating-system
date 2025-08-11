@@ -15,3 +15,5 @@ i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o curso
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 truncate -s 8192 kernel.bin
 cat bootloader.bin kernel.bin > os.img
+cat os.img > drive.qcow2
+truncate -s 1000000 drive.qcow2

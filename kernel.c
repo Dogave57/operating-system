@@ -16,6 +16,7 @@ size_t cmdlen = 0;
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
 	unsigned int avalibleMemory = 0;
+	unsigned int bootdrive = getbootdrive();
 	if (idt_init()!=0){
 		panic("failed to load idt\n");
 		__asm__ volatile("hlt");
@@ -24,7 +25,7 @@ void kentry(void){
 	cursor_enable(0x00, 15);
 	printf("cpu vendor: %s\n", blargs->vendorid);
 	printf("cpu product name: %s\n", blargs->productname);
-	printf("boot drive: %d\n", getbootdrive());
+	printf("boot drive: %d\n", bootdrive);
 	for (unsigned int i = 0;i<blargs->memorymap_entries;i++){
 		struct memorymap_entry entry = blargs->memorymap[i];
 		if (entry.type!=5)
@@ -45,11 +46,25 @@ void kentry(void){
 			unsigned int ret = inl(0xCFC);
 			if (ret==0xFFFFFFFF)
 				continue;
-			printf("device found at pci bus %d device %d\n", i, s);
-			printf("vendor id: %p\n", (void*)(ret&0xFFFF));
-			printf("device id: %p\n", (void*)((ret>>16)&0xFFFF));
+//			printf("device found at pci bus %d device %d\n", i, s);
+//			printf("vendor id: %p\n", (void*)(ret&0xFFFF));
+//			printf("device id: %p\n", (void*)((ret>>16)&0xFFFF));
 		}
 	}
+	uint16_t* buf = (uint16_t*)100000;
+	unsigned int sectorcnt = 1;
+	int status = read_sector(bootdrive, 0, sectorcnt, buf);
+	if (!status)
+		print("successfully read drive\n");
+	else
+		print("failed to read from drive\n");
+	if (buf[256] != 0x55AA)
+		print("valid bootloader magic\n");
+	else
+		print("invalid bootloader magic\n");
+	struct highlow_64 sectors = drive_getsectors(bootdrive);
+	printf("sectors low: %d\n", sectors.low);
+	printf("sectors high: %d\n", sectors.high);
 	while (1){};
 	return;	
 }
