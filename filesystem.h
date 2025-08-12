@@ -11,7 +11,8 @@ struct fs_link{
 	unsigned int right;
 	char data[1];
 };
-int read_sector(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer);
+int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer);
+int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer);
 int drive_getinfo(unsigned int drive, uint16_t* info);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

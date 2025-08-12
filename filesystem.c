@@ -3,12 +3,11 @@
 #include "kernel.h"
 #include "video.h"
 #include "filesystem.h"
-int read_sector(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer){
+int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer){
         if (!buffer)
                 return -1;
         unsigned int err = 0;
         while ((inb(0x1F7)&(1<<7))){};
-        print("ata controller is ready\n");
         outb(0x1F2, sectorcnt&0xFF);
      	outb(0x0,0x0);
 	outb(0x1F3, sector&0xFF);
@@ -34,8 +33,37 @@ int read_sector(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t
                         buffer++;
                 }
         } 
-        printf("successfully read from drive: %d\n", drive);
         return 0;
+}
+int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer){
+	if (!buffer)
+		return -1;
+	unsigned int err = 0;
+	while ((inb(0x1F7)&(1<<7))){};
+	outb(0x1F2, sectorcnt&0xFF);
+	outb(0x0,0x0);
+	outb(0x1F3, sector&0xFF);
+	outb(0x0,0x0);
+	outb(0x1F4, (sector>>8)&0xFF);
+	outb(0x0,0x0);
+	outb(0x1F5, (sector>>16)&0xFF);
+	outb(0x0,0x0);
+	outb(0x1F6, (drive|0xE0)|((sector>>24)&0x0F));
+	outb(0x0,0x0);
+	outb(0x1F7, 0x30);
+	outb(0x0,0x0);
+	for (unsigned int i = 0;i<sectorcnt;i++){
+		while ((inb(0x1F7)&(1<<7))){};
+		for (unsigned int s = 0;s<256;s++){
+			outw(0x1F0, *buffer);
+			buffer++;
+		}
+		if (!(inb(0x1F7)&0x01))
+			continue;
+		err = inb(0x1F1);
+		printf("failed to write sector %d to ata drive (0x%x)\n", i, err);
+	}
+	return 0;
 }
 int drive_getinfo(unsigned int drive, uint16_t* info){
 	if (!info)

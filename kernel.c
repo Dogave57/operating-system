@@ -61,7 +61,7 @@ void kentry(void){
 	}
 	uint16_t* buf = (uint16_t*)100000;
 	unsigned int sectorcnt = 1;
-	int status = read_sector(bootdrive, 0, sectorcnt, buf);
+	int status = read_sectors(bootdrive, 0, sectorcnt, buf);
 	if (!status)
 		print("successfully read drive\n");
 	else

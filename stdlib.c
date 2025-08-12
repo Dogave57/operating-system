@@ -154,9 +154,7 @@ void* kmalloc(size_t size){
 		return NULL;
 	heap_data->heapused+=size;
 	if (heap_data->heapused>heap_data->heap_reserved){
-		printf("%d/%d heap used!\n", heap_data->heapused, heap_data->heap_reserved);
-		__asm__ volatile("cli");
-		__asm__ volatile("hlt");
+		panic("out of memory");	
 		return NULL;
 	}
 	if (!heap_data->currentblock){
