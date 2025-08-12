@@ -18,6 +18,7 @@ struct idtr_t{
 extern struct idt_entry_t idttable[IDT_MAX_ENTRIES];
 void default_master_isr(void);
 void default_slave_isr(void);
+void timer_isr(void);
 void keyboard_isr(void);
 void keyboard_interrupt(void);
 int idt_set_descriptor(uint8_t vector, uint32_t isr, uint8_t flags);

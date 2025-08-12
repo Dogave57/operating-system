@@ -6,6 +6,7 @@
 #include "commands.h"
 #include "cursor.h"
 #include "panic.h"
+#include "timer.h"
 #include "memory.h"
 #include "filesystem.h"
 #include "kernel.h"
@@ -16,6 +17,7 @@ size_t cmdlen = 0;
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
 	unsigned int avalibleMemory = 0;
+	uint64_t installedMemory = 0;
 	unsigned int bootdrive = getbootdrive();
 	if (idt_init()!=0){
 		panic("failed to load idt\n");
@@ -23,9 +25,13 @@ void kentry(void){
 		return;
 	}
 	cursor_enable(0x00, 15);
+	if (heap_init()!=0){
+		panic("failed to initialize kernel heap\n");
+		return;
+	}
 	printf("cpu vendor: %s\n", blargs->vendorid);
 	printf("cpu product name: %s\n", blargs->productname);
-	printf("boot drive: %d\n", bootdrive);
+//	printf("boot drive: %d\n", bootdrive);
 	for (unsigned int i = 0;i<blargs->memorymap_entries;i++){
 		struct memorymap_entry entry = blargs->memorymap[i];
 		if (entry.type!=5)
@@ -33,11 +39,13 @@ void kentry(void){
 		printf("corrupted memory at %p with size %d. Consider replacing your ram\n", (void*)entry.baselow, (int)entry.sizelow);
 	}
 	avalibleMemory = getAvalibleMemory();
-	if (avalibleMemory<64000){
-		panic("this operating system needs atleast 64kb of memory to run!\n");
+	installedMemory = getInstalledMemory();
+	if (avalibleMemory<2000000){
+		panic("this operating system needs atleast 2mb of memory to run!\n");
 		return;
 	}
-	printf("%dkb of memory avalible\n", ((int)avalibleMemory/1000));
+	printf("%d KB of memory avalible\n", ((int)avalibleMemory/1000));
+//	printf("%d KB of lower installed memory\n", ((unsigned int)installedMemory&0xFFFFFFFFUL)/1000);	
 	for (unsigned int i = 0;i<255;i++){
 		for (unsigned int s = 0;s<32;s++){
 			unsigned int bitmask = 0x00000000|(i<<16)|(s<<11)|(1<<31);
@@ -58,13 +66,12 @@ void kentry(void){
 		print("successfully read drive\n");
 	else
 		print("failed to read from drive\n");
-	if (buf[256] != 0x55AA)
-		print("valid bootloader magic\n");
-	else
-		print("invalid bootloader magic\n");
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
 	printf("sectors low: %d\n", sectors.low);
 	printf("sectors high: %d\n", sectors.high);
+	print("before\n");
+	sleep(10000);
+	print("after\n");
 	while (1){};
 	return;	
 }

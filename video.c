@@ -60,6 +60,7 @@ void printf(const char* fmt, ...){
 					hex&=0xF;
 					puthex(hex, 1);
 				}
+				i++;
 				break;
 			}
 			case 'X':{
@@ -69,6 +70,7 @@ void printf(const char* fmt, ...){
 					hex&=0xF;
 					puthex(hex, 0);
 				}
+				i++;
 				break;
 			}
 		}

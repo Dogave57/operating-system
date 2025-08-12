@@ -11,7 +11,8 @@ i686-elf-gcc -c -O0 cursor.c $CFLAGS -o cursor.o
 i686-elf-gcc -c -O0 panic.c $CFLAGS -o panic.o
 i686-elf-gcc -c -O0 memory.c $CFLAGS -o memory.o
 i686-elf-gcc -c -O0 filesystem.c $CFLAGS -o filesystem.o
-i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o -o kernel.elf
+i686-elf-gcc -c -O0 timer.c $CFLAGS -o timer.o
+i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 truncate -s 8192 kernel.bin
 cat bootloader.bin kernel.bin > os.img
