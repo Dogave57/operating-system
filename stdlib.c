@@ -68,9 +68,9 @@ int memcmp(void* buf1, void* buf2, size_t size){
 	}
 	return 0;
 }
-int memcpy(void* dest, void* src, size_t size){
+int memcpy(void* dest, const void* src, size_t size){
 	if (!dest||!src||size<1)
-		return 1;
+		return -1;
 	unsigned char isaligned = size%4;
 	for (size_t i = 0;i<size;){
 		if (isaligned){

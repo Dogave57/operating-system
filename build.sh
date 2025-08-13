@@ -15,6 +15,7 @@ i686-elf-gcc -c -O0 timer.c $CFLAGS -o timer.o
 i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 truncate -s 16384 kernel.bin
+truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
-cat os.img > drive.qcow2
-truncate -s 1000000 drive.qcow2
+truncate -s 65536 os.img
+cat fsgen/filesystem.bin >> os.img

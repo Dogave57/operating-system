@@ -1,0 +1,5 @@
+label: dos
+label-id: 0x12341234
+device: drive.img
+unit: sectors
+drive.img1 : start=33, size=,type=c,bootable 
