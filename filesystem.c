@@ -2,8 +2,9 @@
 #include "bootloader.h"
 #include "kernel.h"
 #include "video.h"
+#include "stdlib.h"
 #include "filesystem.h"
-int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer){
+int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPerSector){
         if (!buffer)
                 return -1;
         unsigned int err = 0;
@@ -28,14 +29,14 @@ int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_
                         return -1;
                 }
                 while (!(inb(0x1F7)&(1<<3))){};
-                for (unsigned int s = 0;s<256;s++){
+                for (unsigned int s = 0;s<wordsPerSector;s++){
                         *buffer = inw(0x1F0);
                         buffer++;
                 }
         } 
         return 0;
 }
-int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer){
+int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPerSector){
 	if (!buffer)
 		return -1;
 	unsigned int err = 0;
@@ -54,7 +55,7 @@ int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16
 	outb(0x0,0x0);
 	for (unsigned int i = 0;i<sectorcnt;i++){
 		while ((inb(0x1F7)&(1<<7))){};
-		for (unsigned int s = 0;s<256;s++){
+		for (unsigned int s = 0;s<wordsPerSector;s++){
 			outw(0x1F0, *buffer);
 			buffer++;
 		}

@@ -31,6 +31,7 @@ void kentry(void){
 	}
 	printf("cpu vendor: %s\n", blargs->vendorid);
 	printf("cpu product name: %s\n", blargs->productname);
+//	printf("boot drive: %d\n", bootdrive);
 	for (unsigned int i = 0;i<blargs->memorymap_entries;i++){
 		struct memorymap_entry entry = blargs->memorymap[i];
 		if (entry.type!=5)
@@ -44,6 +45,7 @@ void kentry(void){
 		return;
 	}
 	printf("%d KB of memory avalible\n", ((int)avalibleMemory/1000));
+//	printf("%d KB of lower installed memory\n", ((unsigned int)installedMemory&0xFFFFFFFFUL)/1000);	
 	for (unsigned int i = 0;i<255;i++){
 		for (unsigned int s = 0;s<32;s++){
 			unsigned int bitmask = 0x00000000|(i<<16)|(s<<11)|(1<<31);
@@ -58,20 +60,14 @@ void kentry(void){
 		}
 	}
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
-	uint16_t first_sector[256] = {0};
-	struct filesystem_info* fsinfo = (struct filesystem_info*)NULL;
-	if (read_sectors(bootdrive, FS_RESERVED_SECTORS, 1, first_sector, 256)!=0){
-		panic("failed to read file system info from boot drive\n");
-		return;
-	}
-	fsinfo = (struct filesystem_info*)first_sector;
-	if (fsinfo->signature!=FS_SIGNATURE){
-		panic("invalid file system signature\n");
-		return;
-	}
-	fsinfo->fsname[sizeof(fsinfo->fsname)-1] = 0;
-	printf("file system name: %s\n", fsinfo->fsname);
-	print("successfully read file system info\n");
+	unsigned int filesystem_sector = 33;
+	uint16_t bootsector[256] = {0};
+	if (!read_sectors(bootdrive, 0, 1, bootsector))	
+		print("successfully read from boot sector\n");
+	else
+		panic("failed to read from boot sector\n");
+	printf("sectors low: %d\n", sectors.low);
+	printf("sectors high: %d\n", sectors.high);
 	print("before\n");
 	sleep(10000);
 	print("after\n");
