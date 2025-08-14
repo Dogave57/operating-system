@@ -15,6 +15,8 @@ unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
 char cmdline[256] = {0};
 size_t cmdlen = 0;
+void test_thread(void* arg);
+void test_thread2(void* arg);
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
 	unsigned int avalibleMemory = 0;
@@ -89,21 +91,32 @@ void kentry(void){
 	printf("fat size: %d\n", fatSize);
 	printf("total sectors: %d\n", totalSectors);
 	printf("cluster count: %d\n", clustercnt);	
-	struct thread_t* thread0 = thread_create(0x1, 0x1000);
-	if (!thread0)
-		panic("failed to create thread 0\n");
-	struct thread_t* thread1 = thread_create(0x3,0x1000);
-	if (!thread1)
-		panic("failed to create thread 1\n");
-	thread_free(thread1);
-	thread1 = thread_create(0x1234, 0x1000);
-	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread0, thread0->state.eip, thread0->state.esp, thread0->id, thread0->blink, thread0->flink);
-	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread1, thread1->state.eip, thread1->state.esp, thread1->id, thread1->blink, thread1->flink);
-	print("before\n");
-	sleep(10000);
-	print("after\n");
+	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000);
+	if (!thread)
+		panic("failed to create test thread\n");
+	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000);
+	if (!thread2)
+		panic("failed to create test thread 2\n");
+	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
+	set_multithreading(1);
 	while (1){};
 	return;	
+}
+void test_thread(void* arg){
+	printf("test thread started\n");
+	while (1){
+		sleep(1000);
+		print("test thread running in loop...\n");
+	}
+	return;
+}
+void test_thread2(void* arg){
+	printf("test thread 2 started\n");
+	while (1){
+		sleep(500);
+		printf("test thread 2 running in loop\n");
+	}
+	return;
 }
 void keyboard_interrupt(void){
 	if (!(inb(0x64)&1))

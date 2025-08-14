@@ -1,5 +1,10 @@
 #ifndef _THREAD
 #define _THREAD
+enum threadStatus{
+	THREAD_FREE,	
+	THREAD_INUSE,
+	THREAD_SUSPENDED,
+};
 struct threadstate_x86{
 	uint32_t eip;
 	uint32_t esp;
@@ -9,6 +14,7 @@ struct threadstate_x86{
 	uint32_t ecx;
 	uint32_t edx;
 	uint32_t edi;
+	uint32_t esi;
 	uint16_t di;
 	uint16_t si;
 	uint16_t ax;
@@ -25,10 +31,13 @@ struct threadstate_x86{
 };
 struct thread_t{
 	uint32_t id;
+	uint32_t stacksize;
 	struct threadstate_x86 state;
 	struct thread_t* blink;
 	struct thread_t* flink;
+	enum threadStatus status;
 };
+typedef void(*threadfunc)(void* arg);
 extern struct thread_t* first_thread;
 extern struct thread_t* last_thread;
 extern uint32_t threads_created;
