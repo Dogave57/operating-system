@@ -8,6 +8,7 @@
 #include "panic.h"
 #include "timer.h"
 #include "memory.h"
+#include "thread.h"
 #include "filesystem.h"
 #include "kernel.h"
 unsigned char shiftPressed = 0;
@@ -59,19 +60,45 @@ void kentry(void){
 	}
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
 	uint16_t first_sector[256] = {0};
-	struct filesystem_info* fsinfo = (struct filesystem_info*)NULL;
+	struct FAT32_FS_INFO* fsinfo = (struct FAT32_FS_INFO*)first_sector;
+	unsigned int first_data_sector = 0;
+	unsigned int firstSectorOfCluster = 0;
 	if (read_sectors(bootdrive, FS_RESERVED_SECTORS, 1, first_sector, 256)!=0){
 		panic("failed to read file system info from boot drive\n");
 		return;
 	}
-	fsinfo = (struct filesystem_info*)first_sector;
-	if (fsinfo->signature!=FS_SIGNATURE){
-		panic("invalid file system signature\n");
+	if (memcmp((void*)fsinfo->fileSystemType, (void*)"FAT32   ", 8)!=0){
+		panic("not booted from valid fat32 drive\n");
 		return;
 	}
-	fsinfo->fsname[sizeof(fsinfo->fsname)-1] = 0;
-	printf("file system name: %s\n", fsinfo->fsname);
-	print("successfully read file system info\n");
+	if (!fsinfo->totalSectors32){
+		fsinfo->totalSectors32 = sectors.low;
+		print("total sectors not set! Setting total sectors\n");
+		if (!write_sectors(bootdrive, FS_RESERVED_SECTORS, 1, first_sector, 256))
+			print("successfully written with total sectors set\n");	
+		else
+			print("failed to write with total sectors\n");
+	}
+	first_data_sector = fsinfo->reservedSectorCount+(fsinfo->numFATs*fsinfo->FATSize32);
+	uint32_t totalSectors = fsinfo->totalSectors32;
+	uint32_t fatSize = fsinfo->FATSize32;
+	uint32_t dataSectors = totalSectors-(fsinfo->reservedSectorCount+(fsinfo->numFATs*fatSize));
+	uint32_t clustercnt = (dataSectors)/fsinfo->sectorsPerCluster;
+	uint32_t bytes_per_cluster = fsinfo->sectorsPerCluster*fsinfo->bytesPerSector;
+	printf("data sectors: %d\n", dataSectors);
+	printf("fat size: %d\n", fatSize);
+	printf("total sectors: %d\n", totalSectors);
+	printf("cluster count: %d\n", clustercnt);	
+	struct thread_t* thread0 = thread_create(0x1, 0x1000);
+	if (!thread0)
+		panic("failed to create thread 0\n");
+	struct thread_t* thread1 = thread_create(0x3,0x1000);
+	if (!thread1)
+		panic("failed to create thread 1\n");
+	thread_free(thread1);
+	thread1 = thread_create(0x1234, 0x1000);
+	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread0, thread0->state.eip, thread0->state.esp, thread0->id, thread0->blink, thread0->flink);
+	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread1, thread1->state.eip, thread1->state.esp, thread1->id, thread1->blink, thread1->flink);
 	print("before\n");
 	sleep(10000);
 	print("after\n");

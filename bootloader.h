@@ -1,4 +1,3 @@
-
 #ifndef _BOOTLOADER
 #define _BOOTLOADER
 #include <stdint.h>
