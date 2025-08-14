@@ -25,7 +25,7 @@ int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_
                 while ((inb(0x1F7)&(1<<7))){};
                 if (inb(0x1F7)&0x1){
                         err = inb(0x1F1);
-                        printf("failed to read sector %d (%p)\n", (void*)err);
+                        printf("failed to read sector %d (%p)\n", sector+i,(void*)err);
                         return -1;
                 }
                 while (!(inb(0x1F7)&(1<<3))){};
@@ -62,7 +62,7 @@ int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16
 		if (!(inb(0x1F7)&0x01))
 			continue;
 		err = inb(0x1F1);
-		printf("failed to write sector %d to ata drive (0x%x)\n", i, err);
+		printf("failed to write sector %d to ata drive (0x%x)\n", sector+i, err);
 	}
 	return 0;
 }

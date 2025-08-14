@@ -6,6 +6,7 @@
 #include "kernel.h"
 #include "video.h"
 #include "stdlib.h"
+#define align_up(val, align)((val+align-1) & ~(align-1))
 int itoa(int num, char* buf, size_t bufmax){
 	if (!buf||bufmax<1)
 		return -1;
@@ -150,8 +151,10 @@ char toLower(char ch){
 void* kmalloc(size_t size){
 	if (size<1)
 		return NULL;
-	if (size>heap_data->heap_reserved)
+	size = align_up(size, 4);
+	if (size>heap_data->heap_reserved){
 		return NULL;
+	}
 	heap_data->heapused+=size;
 	if (heap_data->heapused>heap_data->heap_reserved){
 		panic("out of memory");	

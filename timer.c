@@ -1,6 +1,7 @@
 #include "video.h"
 #include "kernel.h"
 #include "panic.h"
+#include "thread.h"
 #include "timer.h"
 unsigned int time_ms = 0;
 void timer_interrupt(void){
