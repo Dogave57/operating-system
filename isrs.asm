@@ -17,19 +17,24 @@ popa
 sti
 iret
 default_slave_isr:
+cli
 pusha
 mov al, 0x20
 mov dx, 0xA0
 out dx, al
 popa
+sti
 iret
 timer_isr:
 cli
 pusha
-call timer_interrupt
 mov al, 0x20
 mov dx, 0x20
 out dx, al
+mov dword eax, [esp+36]
+push eax
+call timer_interrupt
+pop eax
 popa
 sti
 iret
