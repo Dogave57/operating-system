@@ -10,10 +10,10 @@ struct thread_t* last_used_thread = (struct thread_t*)NULL;
 struct scheduler_task_info_t scheduler_info = {0};
 __attribute__((cdecl)) void timer_interrupt(uint32_t eip){
 	time_ms++;
+//	printf("return function: %p\n", returnaddr);
 	if (!scheduler_info.multithread_enabled||!first_thread)
 		return;
 	if (scheduler_info.current_thread!=NULL){
-//		__asm__ volatile("mov %%eip, %0" : "=r"(scheduler_info.current_thread->state.eip));
 		__asm__ volatile("mov %%esp, %0" : "=r"(scheduler_info.current_thread->state.esp));
 		__asm__ volatile("mov %%ebp, %0" : "=r"(scheduler_info.current_thread->state.ebp));
 		__asm__ volatile("mov %%eax, %0" : "=r"(scheduler_info.current_thread->state.eax));
@@ -36,7 +36,7 @@ __attribute__((cdecl)) void timer_interrupt(uint32_t eip){
 		__asm__ volatile("mov %%dh, %0" : "=r"(scheduler_info.current_thread->state.dh));
 		__asm__ volatile("mov %%dl, %0" : "=r"(scheduler_info.current_thread->state.dl));
 		scheduler_info.current_thread->state.eip = eip;
-		printf("eip: %p\n", (void*)eip);
+//		printf("eip: %p\n", (void*)eip);
 	}
 	if ((time_ms-scheduler_info.thread_start)<scheduler_info.thread_max_ms)
 		return;
@@ -47,6 +47,7 @@ __attribute__((cdecl)) void timer_interrupt(uint32_t eip){
 		while(1){};
 		return;
 	}
+	struct thread_t* last_thread = (struct thread_t*)current_thread; 
 	if (scheduler_info.current_thread!=NULL){
 		scheduler_info.current_thread = scheduler_info.current_thread->flink;
 		printf("flink: %p\n", (void*)scheduler_info.current_thread->flink);
@@ -58,11 +59,16 @@ __attribute__((cdecl)) void timer_interrupt(uint32_t eip){
 			scheduler_info.current_thread = scheduler_info.current_thread->flink;
 		}
 	}
+	if (!scheduler_info.current_thread){
+		panic("no threads to run!\n");
+		while (1){};
+		return;
+	}
+	if (last_thread==scheduler_info.current_thread)
+		return;
 //	printf("esp: %p\n", (void*)scheduler_info.current_thread->state.esp);
-//	printf("executing thread: %d with eip: %p\n", scheduler_info.current_thread->id, (void*)scheduler_info.current_thread->state.eip);
+	printf("executing thread: %d with eip: %p\n", scheduler_info.current_thread->id, (void*)scheduler_info.current_thread->state.eip);
 	threadfunc func = (threadfunc)scheduler_info.current_thread->state.eip;
-//	__asm__ volatile("mov %0, %%esp" :: "r"(scheduler_info.current_thread->state.esp));
-//	__asm__ volatile("mov %0, %%ebp" :: "r"(scheduler_info.current_thread->state.ebp));
 	__asm__ volatile("mov %0, %%eax" :: "r"(scheduler_info.current_thread->state.eax));
 	__asm__ volatile("mov %0, %%ebx" :: "r"(scheduler_info.current_thread->state.ebx));
 	__asm__ volatile("mov %0, %%ecx" :: "r"(scheduler_info.current_thread->state.ecx));
@@ -82,6 +88,9 @@ __attribute__((cdecl)) void timer_interrupt(uint32_t eip){
 	__asm__ volatile("mov %0, %%cl" :: "r"(scheduler_info.current_thread->state.cl));
 	__asm__ volatile("mov %0, %%dh" :: "r"(scheduler_info.current_thread->state.dh));
 	__asm__ volatile("mov %0, %%dl" :: "r"(scheduler_info.current_thread->state.dl));
+	__asm__ volatile("mov %0, %%ebp" :: "r"(scheduler_info.current_thread->state.ebp));
+	if (scheduler_info.current_thread->state.esp)
+		__asm__ volatile("mov %0, %%esp" :: "r"(scheduler_info.current_thread->state.esp));
 	outb(0x20,0x20);
 	void* thread_arg = scheduler_info.current_thread->arg;
 	__asm__ volatile("sti");

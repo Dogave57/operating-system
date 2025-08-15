@@ -97,7 +97,7 @@ void kentry(void){
 	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, NULL);
 	if (!thread2)
 		panic("failed to create test thread 2\n");
-//	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
+	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
 //	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
 	set_multithreading(1);
 	while (1){};
