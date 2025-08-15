@@ -7,19 +7,14 @@ struct thread_t* first_thread = (struct thread_t*)NULL;
 struct thread_t* last_thread = (struct thread_t*)NULL;
 uint32_t threads_created = 0;
 uint32_t threads_freed = 0;
-uint32_t threads_count = 0;
-struct thread_t* thread_create(uint32_t eip, uint32_t stack_size){
+uint32_t threads_cnt = 0;
+struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 	struct thread_t* newthread = (struct thread_t*)NULL;
 	struct thread_t* link = first_thread;
-	while (link!=NULL){
-		if (link->status!=THREAD_FREE){
-			link=link->flink;
-			continue;
-		}	
-		newthread = link;
-		newthread->flink = NULL;
-		newthread->blink = NULL;
-		break;
+	while (newthread&&newthread->status!=THREAD_FREE){
+		newthread = newthread->flink;
+		memset((void*)newthread,0 , sizeof(struct thread_t));	
+		newthread->status = THREAD_FREE;
 	}
 	if (!newthread){
 		newthread = (struct thread_t*)kmalloc(sizeof(struct thread_t));
@@ -28,28 +23,29 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size){
 			return NULL;
 		}
 		memset((void*)newthread, 0, sizeof(struct thread_t));
-		newthread->id = threads_created;
-		threads_created++;
 	}
-	last_thread->flink = newthread;
+	memset((void*)newthread, 0, sizeof(struct thread_t));
+	newthread->state.esp = (uint32_t)kmalloc(stack_size);
+	if (!newthread->state.esp){
+		print("failed to allocate memory for stack\n");
+		kfree((void*)newthread);
+		return NULL;	
+	}
 	newthread->blink = last_thread;
-	last_thread = newthread;
-	last_thread->flink = first_thread;	
+	if (last_thread)
+		last_thread->flink = newthread;
+	newthread->flink = first_thread;
 	last_thread = newthread;
 	if (!first_thread)
 		first_thread = newthread;
-	newthread->state.esp = (uint32_t)kmalloc(stack_size);
-	if (!newthread->state.esp){
-		print("failed to allocate stack for thread\n");
-		newthread->status = THREAD_FREE;
-		return NULL;
-	}
-	newthread->stacksize = stack_size;
+	if (newthread->status!=THREAD_FREE)
+		threads_created++;
 	newthread->state.eip = eip;
-	if (newthread->status==THREAD_FREE)
-		threads_freed--;
+	newthread->stacksize = stack_size;
 	newthread->status = THREAD_INUSE;
-	threads_count++;
+	newthread->id = threads_created;
+	newthread->arg = arg;
+	threads_cnt++;
 	return newthread;
 }
 int thread_free(struct thread_t* thread){
@@ -58,7 +54,7 @@ int thread_free(struct thread_t* thread){
 	if (thread->state.esp)
 		kfree((void*)thread->state.esp);
 	thread->status = THREAD_FREE;
-	threads_count--;
+	threads_cnt--;
 	threads_freed++;
 	return 0;
 }
