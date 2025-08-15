@@ -91,13 +91,14 @@ void kentry(void){
 	printf("fat size: %d\n", fatSize);
 	printf("total sectors: %d\n", totalSectors);
 	printf("cluster count: %d\n", clustercnt);	
-	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000);
+	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, NULL);
 	if (!thread)
 		panic("failed to create test thread\n");
-	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000);
+	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, NULL);
 	if (!thread2)
 		panic("failed to create test thread 2\n");
-	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
+//	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
+//	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
 	set_multithreading(1);
 	while (1){};
 	return;	
@@ -105,15 +106,15 @@ void kentry(void){
 void test_thread(void* arg){
 	printf("test thread started\n");
 	while (1){
-		sleep(1000);
-		print("test thread running in loop...\n");
+		sleep(200);
+		print("test thread 1 running in loop...\n");
 	}
 	return;
 }
 void test_thread2(void* arg){
 	printf("test thread 2 started\n");
 	while (1){
-		sleep(500);
+		sleep(300);
 		printf("test thread 2 running in loop\n");
 	}
 	return;
