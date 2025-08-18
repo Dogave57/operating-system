@@ -1,0 +1,29 @@
+#ifndef _EXCEPTION
+#define _EXCEPTION
+#include <stdint.h>
+#define EXCEPT_DIVBYZERO 0
+#define EXCEPT_DEBUG 1
+#define EXCEPT_NMI 2
+#define EXCEPT_BREAK 3
+#define EXCEPT_OVERFLOW 4
+#define EXCEPT_BRE 5
+#define EXCEPT_INVALID_INSTRUCTION 6
+#define EXCEPT_DEV_NOT_AVALIBLE 7
+#define EXCEPT_DOUBLE_FAULT 8
+#define EXCEPT_SEGMENT_OVERRUN 9
+#define EXCEPT_INVALID_TSS 10
+#define EXCEPT_SEGMENT_NOT_PRESENT 11
+#define EXCEPT_STACK_SEGMENT_FAULT 12
+#define EXCEPT_GENERAL_PROTECT_FAULT 13
+#define EXCEPT_PAGE_FAULT 14
+#define EXCEPT_FLOATING_POINT 16
+#define EXCEPT_ALIGN_FAIL 17
+#define EXCEPT_MACHINE_FAIL 18
+#define EXCEPT_SIMD_FLOAT 19
+#define EXCEPT_VIRTUALIZATION 20
+#define EXCEPT_CONTROL_PROTECT 21
+#define EXCEPT_HYPERVISOR_INJECT 28
+#define EXCEPT_VMM_COMM 29
+#define EXCEPT_SECURITY 30
+void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx, uint32_t ebp, uint32_t esp, uint32_t eip, uint32_t cs, uint32_t flags);
+#endif
