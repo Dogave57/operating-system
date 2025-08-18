@@ -32,6 +32,7 @@ struct threadstate_x86{
 };
 struct thread_t{
 	uint32_t id;
+	uint32_t stack_start;
 	uint32_t stacksize;
 	struct threadstate_x86 state;
 	struct thread_t* blink;
@@ -40,7 +41,7 @@ struct thread_t{
 	void* arg;
 };
 struct scheduler_task_info_t{
-	struct thread_t* last_used_thread;
+	struct thread_t* last_thread;
 	struct thread_t* current_thread;
 	uint32_t thread_max_ms;
 	uint32_t thread_start;

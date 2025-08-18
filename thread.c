@@ -25,12 +25,14 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 		memset((void*)newthread, 0, sizeof(struct thread_t));
 	}
 	memset((void*)newthread, 0, sizeof(struct thread_t));
-	newthread->state.esp = (uint32_t)kmalloc(stack_size);
-	if (!newthread->state.esp){
+	newthread->stack_start = (uint32_t)kmalloc(stack_size);
+	if (!newthread->stack_start){
 		print("failed to allocate memory for stack\n");
 		kfree((void*)newthread);
 		return NULL;	
 	}
+	newthread->state.esp = newthread->stack_start+stack_size;
+	newthread->state.ebp = newthread->state.esp;
 	newthread->blink = last_thread;
 	if (last_thread)
 		last_thread->flink = newthread;
@@ -46,13 +48,14 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 	newthread->id = threads_created;
 	newthread->arg = arg;
 	threads_cnt++;
+	print("done creating thread\n");
 	return newthread;
 }
 int thread_free(struct thread_t* thread){
 	if (!thread)
 		return -1;
-	if (thread->state.esp)
-		kfree((void*)thread->state.esp);
+	if (thread->stack_start)
+		kfree((void*)thread->stack_start);
 	thread->status = THREAD_FREE;
 	threads_cnt--;
 	threads_freed++;

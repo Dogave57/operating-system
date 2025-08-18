@@ -17,6 +17,7 @@ char cmdline[256] = {0};
 size_t cmdlen = 0;
 void test_thread(void* arg);
 void test_thread2(void* arg);
+void test_thread3(void* arg);
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
 	unsigned int avalibleMemory = 0;
@@ -46,59 +47,19 @@ void kentry(void){
 		panic("this operating system needs atleast 2mb of memory to run!\n");
 		return;
 	}
-	printf("%d KB of memory avalible\n", ((int)avalibleMemory/1000));
-	for (unsigned int i = 0;i<255;i++){
-		for (unsigned int s = 0;s<32;s++){
-			unsigned int bitmask = 0x00000000|(i<<16)|(s<<11)|(1<<31);
-			outl(0xCF8, bitmask);
-			outb(0x0,0x0);
-			unsigned int ret = inl(0xCFC);
-			if (ret==0xFFFFFFFF)
-				continue;
-//			printf("device found at pci bus %d device %d\n", i, s);
-//			printf("vendor id: %p\n", (void*)(ret&0xFFFF));
-//			printf("device id: %p\n", (void*)((ret>>16)&0xFFFF));
-		}
-	}
+	printf("%d KB of memory avalible\n", ((int)avalibleMemory/1000));	
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
-	uint16_t first_sector[256] = {0};
-	struct FAT32_FS_INFO* fsinfo = (struct FAT32_FS_INFO*)first_sector;
-	unsigned int first_data_sector = 0;
-	unsigned int firstSectorOfCluster = 0;
-	if (read_sectors(bootdrive, FS_RESERVED_SECTORS, 1, first_sector, 256)!=0){
-		panic("failed to read file system info from boot drive\n");
-		return;
-	}
-	if (memcmp((void*)fsinfo->fileSystemType, (void*)"FAT32   ", 8)!=0){
-		panic("not booted from valid fat32 drive\n");
-		return;
-	}
-	if (!fsinfo->totalSectors32){
-		fsinfo->totalSectors32 = sectors.low;
-		print("total sectors not set! Setting total sectors\n");
-		if (!write_sectors(bootdrive, FS_RESERVED_SECTORS, 1, first_sector, 256))
-			print("successfully written with total sectors set\n");	
-		else
-			print("failed to write with total sectors\n");
-	}
-	first_data_sector = fsinfo->reservedSectorCount+(fsinfo->numFATs*fsinfo->FATSize32);
-	uint32_t totalSectors = fsinfo->totalSectors32;
-	uint32_t fatSize = fsinfo->FATSize32;
-	uint32_t dataSectors = totalSectors-(fsinfo->reservedSectorCount+(fsinfo->numFATs*fatSize));
-	uint32_t clustercnt = (dataSectors)/fsinfo->sectorsPerCluster;
-	uint32_t bytes_per_cluster = fsinfo->sectorsPerCluster*fsinfo->bytesPerSector;
-	printf("data sectors: %d\n", dataSectors);
-	printf("fat size: %d\n", fatSize);
-	printf("total sectors: %d\n", totalSectors);
-	printf("cluster count: %d\n", clustercnt);	
+	printf("drive sectors: %d\n", sectors.low);
 	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, NULL);
 	if (!thread)
 		panic("failed to create test thread\n");
 	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, NULL);
 	if (!thread2)
 		panic("failed to create test thread 2\n");
-	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
-//	printf("thread %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
+	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, NULL);
+	printf("thread1 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
+	printf("thread2 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
+	printf("thread3 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread3, thread3->state.eip, thread3->state.esp, thread3->id, thread3->blink, thread3->flink);
 	set_multithreading(1);
 	while (1){};
 	return;	
@@ -106,7 +67,7 @@ void kentry(void){
 void test_thread(void* arg){
 	printf("test thread started\n");
 	while (1){
-		sleep(200);
+		sleep(700);
 		print("test thread 1 running in loop...\n");
 	}
 	return;
@@ -114,8 +75,16 @@ void test_thread(void* arg){
 void test_thread2(void* arg){
 	printf("test thread 2 started\n");
 	while (1){
-		sleep(300);
+		sleep(700);
 		printf("test thread 2 running in loop\n");
+	}
+	return;
+}
+void test_thread3(void* arg){
+	printf("test thread 3 started\n");
+	while (1){
+		sleep(700);
+		printf("test thread 3 running in loop\n");
 	}
 	return;
 }

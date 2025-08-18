@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "video.h"
 unsigned int vgaIndex = 0;
+unsigned int vga_attrib = 0x07;
 void print(const char* str){
 	if (!str)
 		str = "Invalid string\n";
@@ -94,7 +95,7 @@ void putchar(char ch){
 		break;
 		default:
 			*((volatile unsigned char*)0xB8000+vgaIndex) = ch;
-			*((volatile unsigned char*)0xB8000+vgaIndex+1) = 0x07;
+			*((volatile unsigned char*)0xB8000+vgaIndex+1) = vga_attrib;
 			vgaIndex+=2;
 		break;
 	}
@@ -118,8 +119,16 @@ void puthex(unsigned char hex, unsigned char lower){
 void clear(void){
 	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
 		*((volatile unsigned char*)0xB8000+i) = ' ';
+		*((volatile unsigned char*)0xB8000+i+1) = vga_attrib;
 	}
 	vgaIndex = 0;
 	cursor_setpos(0);
+	return;
+}
+void vga_set_color(unsigned char fg, unsigned char bg){
+	vga_attrib = (bg << 4)|(fg&0xF);
+	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
+		*((volatile unsigned char*)0xB8000+i+1) = vga_attrib;
+	}
 	return;
 }
