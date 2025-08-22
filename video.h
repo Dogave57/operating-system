@@ -2,6 +2,7 @@
 #define _VIDEO
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
+#define VGA_BUFFER 0xB8000
 enum vgaColor{
 	VGA_COLOR_BLACK,
 	VGA_COLOR_BLUE,

@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "thread.h"
 #include "filesystem.h"
+#include "usb.h"
 #include "kernel.h"
 unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
@@ -60,7 +61,8 @@ void kentry(void){
 	printf("thread1 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
 	printf("thread2 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
 	printf("thread3 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread3, thread3->state.eip, thread3->state.esp, thread3->id, thread3->blink, thread3->flink);
-	set_multithreading(1);
+	usb_init();
+	set_multithreading(0);
 	while (1){};
 	return;	
 }
@@ -93,8 +95,15 @@ void keyboard_interrupt(void){
 		return;
 	uint8_t scancode = inb(0x60);
 	switch (scancode){
+		case 0x3A:
+			capsPressed = 1;
+			break;
+		case 0xBA:
+			capsPressed = 0;
+			break;
 		case 0x2A:
 		case 0x36:
+		//	__asm__ volatile("int $12");
 			shiftPressed = 1;	
 		return;
 		case 0xAA:
@@ -110,6 +119,7 @@ void keyboard_interrupt(void){
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
 	putchar(ascii);	
+//	__asm__ volatile("int $12");
 	return;
 }
 void reboot(void){

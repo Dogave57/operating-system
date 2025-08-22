@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "video.h"
 #include "panic.h"
+#include "interrupt.h"
+#include "kernel.h"
 #include "exception.h"
 void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx, uint32_t ebp, uint32_t esp, uint32_t eip, uint32_t cs, uint32_t flags){
 	static const char* exception_map[] = {
@@ -38,6 +40,11 @@ void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t 
 	printf("eip: %p     cs: %p     flags: %p\n", eip, cs, flags);
 	printf("eax: %p     ebx: %p     ecx: %p\n", eax, ebx, ecx);
 	printf("edx: %p     ebp: %p     esp: %p\n", edx, ebp, esp);
-	while (1){};
+	for (unsigned int i = 0;i<64;i++){
+		printf("0x%X, ", *(unsigned char*)(eip+i));
+	}
+	while (1){
+		keyboard_interrupt();
+	};
 	return;
 }

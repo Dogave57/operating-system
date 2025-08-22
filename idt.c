@@ -61,11 +61,6 @@ int idt_init(void){
 	outb(0xA1, 0x0);
 	set_pit_frequency(1000);
 	__asm__ volatile ("lidt %0" : : "m"(idtr));
-	__asm__ volatile ("sti");
-	__asm__ volatile ("mov $1, %eax");
-	__asm__ volatile ("mov $2, %ebx");
-	__asm__ volatile ("mov $3, %ecx");
-	__asm__ volatile ("mov $4, %edx");
-	//__asm__ volatile ("int $1");	
+	__asm__ volatile ("sti");	
 	return 0;
 }
