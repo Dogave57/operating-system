@@ -79,25 +79,27 @@ void printf(const char* fmt, ...){
 	return;
 }
 void putchar(char ch){
-	if (vgaIndex>=VGA_WIDTH*VGA_HEIGHT*2)
-		clear();
 	switch (ch){
-		case '\n':	
+		case '\n':
 			vgaIndex+=VGA_WIDTH*2;
 			vgaIndex-=(vgaIndex%(VGA_WIDTH*2));
 		break;
 		case '\r':
-			vgaIndex-=(vgaIndex%(VGA_WIDTH*2));
+			vgaIndex-=vgaIndex%VGA_WIDTH*2;
 		break;
-		case '\b':
-			vgaIndex-=2;
-			*((volatile unsigned char*)0xB8000+vgaIndex) = ' ';
+		case '\b':;
+			  vgaIndex-=2;
 		break;
-		default:
-			*((volatile unsigned char*)0xB8000+vgaIndex) = ch;
-			*((volatile unsigned char*)0xB8000+vgaIndex+1) = vga_attrib;
+		default:{
+			((unsigned char*)VGA_BUFFER)[vgaIndex] = ch;
+			((unsigned char*)VGA_BUFFER)[vgaIndex+1] = vga_attrib;
 			vgaIndex+=2;
-		break;
+			break;
+		}
+	}
+	if (vgaIndex>VGA_WIDTH*VGA_HEIGHT*2){
+		clear();
+		return;
 	}
 	cursor_setpos(vgaIndex/2);
 	return;
@@ -118,8 +120,7 @@ void puthex(unsigned char hex, unsigned char lower){
 }
 void clear(void){
 	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
-		*((volatile unsigned char*)0xB8000+i) = ' ';
-		*((volatile unsigned char*)0xB8000+i+1) = vga_attrib;
+		((volatile unsigned char*)VGA_BUFFER)[i] = ' ';
 	}
 	vgaIndex = 0;
 	cursor_setpos(0);
@@ -128,7 +129,8 @@ void clear(void){
 void vga_set_color(unsigned char fg, unsigned char bg){
 	vga_attrib = (bg << 4)|(fg&0xF);
 	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
-		*((volatile unsigned char*)0xB8000+i+1) = vga_attrib;
+		*((volatile unsigned char*)VGA_BUFFER+i) = ' ';
+		*((volatile unsigned char*)VGA_BUFFER+i+1) = vga_attrib;
 	}
 	return;
 }

@@ -87,6 +87,7 @@ je memorymaploopend
 add di, 24
 jmp memorymaploop
 memorymaploopend:
+mov es, ax
 xor ah, ah
 mov al, 0x03
 int 0x10
