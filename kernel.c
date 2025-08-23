@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "filesystem.h"
 #include "usb.h"
+#include "pci.h"
 #include "kernel.h"
 unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
@@ -32,6 +33,10 @@ void kentry(void){
 	cursor_enable(0x00, 15);
 	if (heap_init()!=0){
 		panic("failed to initialize kernel heap\n");
+		return;
+	}
+	if (usb_init()!=0){
+		panic("failed to initialize usb\n");
 		return;
 	}
 	printf("cpu vendor: %s\n", blargs->vendorid);
@@ -58,10 +63,32 @@ void kentry(void){
 	if (!thread2)
 		panic("failed to create test thread 2\n");
 	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, NULL);
-	printf("thread1 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread, thread->state.eip, thread->state.esp, thread->id, thread->blink, thread->flink);
-	printf("thread2 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread2, thread2->state.eip, thread2->state.esp, thread2->id, thread2->blink, thread2->flink);
-	printf("thread3 %p: eip: %p, esp: %p, tid: %d, blink: %p, flink: %p\n", (void*)thread3, thread3->state.eip, thread3->state.esp, thread3->id, thread3->blink, thread3->flink);
-	usb_init();
+	for (unsigned int bus = 0;bus<256;bus++){
+		for (unsigned int dev = 0;dev<32;dev++){
+			for (unsigned int func = 0;func<8;func++){
+				if (pci_device_exists(bus,dev,func)==0)
+					continue;
+				struct pci_bar_data bar_data = {0};
+				uint32_t vendor_id = pci_get_vendor(bus,dev,func);
+				uint32_t device_id = pci_get_devid(bus,dev,func);
+				pci_get_bars(bus,dev,func,&bar_data);
+				printf("pci device at bus %d device %d func: %d vendor: %x device id: %x\n", bus, dev, func, vendor_id, device_id);
+				for (unsigned int bar = 0;bar<6;bar++){
+					struct pci_bar pcibar = bar_data.pcibars[bar];
+					if (!pcibar.base)
+						continue;
+					if (pcibar.isX64)
+						print("x64 bar\n");
+//					else
+//						print("x86 bar\n");
+					if (pcibar.barType==PCI_BAR_MMIO)
+						printf("mmio bar at %x\n", pcibar.base);
+					else
+						printf("io bar at: %x\n", pcibar.base);
+				}
+			}	
+		}
+	}
 	set_multithreading(0);
 	while (1){};
 	return;	
