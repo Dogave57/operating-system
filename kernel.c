@@ -81,10 +81,10 @@ void kentry(void){
 						print("x64 bar\n");
 //					else
 //						print("x86 bar\n");
-					if (pcibar.barType==PCI_BAR_MMIO)
-						printf("mmio bar at %x\n", pcibar.base);
-					else
-						printf("io bar at: %x\n", pcibar.base);
+//					if (pcibar.barType==PCI_BAR_MMIO)
+//						printf("mmio bar at %x\n", pcibar.base);
+///					else
+//						printf("io bar at: %x\n", pcibar.base);
 				}
 			}	
 		}

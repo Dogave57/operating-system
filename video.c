@@ -89,6 +89,7 @@ void putchar(char ch){
 		break;
 		case '\b':;
 			  vgaIndex-=2;
+			  ((unsigned char*)VGA_BUFFER)[vgaIndex] = ' ';
 		break;
 		default:{
 			((unsigned char*)VGA_BUFFER)[vgaIndex] = ch;
