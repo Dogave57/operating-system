@@ -5,8 +5,11 @@
 #include "pci.h"
 #include "usb.h"
 int usb_init(void){
-	printf("implementing usb...\n");
-	pci_init();
+	print("initializing pci\n");
+	if (!pci_init())
+		print("successfully initialized pci\n");
+	else
+		print("failed to initialize pci\n");
 	return 0;
 }
 
