@@ -32,7 +32,7 @@ uint8_t pci_read_byte_conf(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offse
 	outb(0x0,0x0);
 	outl(0xCF8, addr);
 	outb(0x0,0x0);
-	conf = (uint8_t)(inl(0xCFC)>>((offset&1)*8)&0xFFFF);
+	conf = (uint8_t)(inl(0xCFC)>>((offset%4)*8)&0xFF);
 	outl(0xCF8,0x0);
 	outb(0xCFC,0x0);
 	return conf;
@@ -99,10 +99,6 @@ int pci_deinit(void){
 	kfree((void*)pci_buses);
 	return 0;
 }
-int pci_get_device(void){
-
-	return 0;
-}
 int pci_device_exists(uint8_t bus, uint8_t dev, uint8_t func){
 	if (pci_initialized==0)
 		return 0;
@@ -111,4 +107,36 @@ int pci_device_exists(uint8_t bus, uint8_t dev, uint8_t func){
 	unsigned char exists = (pci_get_vendor(bus,dev,func)!=0xFFFF);
 	pci_buses[bus][dev][func] = exists;
 	return exists;
+}
+struct pci_device pci_get_device(uint8_t class, uint8_t subclass, uint8_t progif, uint8_t bus_max, uint8_t dev_max){
+	if (!bus_max)
+		bus_max = 255;
+	if (!dev_max)
+		dev_max = 32;
+	struct pci_device ret = {0};
+	for (unsigned int bus = 0;bus<bus_max;bus++){
+		for (unsigned int dev = 0;dev<dev_max;dev++){
+			for (unsigned int func = 0;func<8;func++){
+				uint32_t vendor_id = pci_get_vendor(bus,dev,func);
+				if (vendor_id==0xFFFF)
+					continue;
+				uint32_t dev_id = pci_get_devid(bus,dev,func);
+				uint8_t dev_class = pci_get_class(bus,dev,func);
+				uint8_t dev_subclass = pci_get_subclass(bus,dev,func);
+				uint8_t dev_progif = pci_get_progif(bus,dev,func);
+				if (dev_class!=class||dev_subclass!=subclass||(dev_progif!=progif&&progif!=0))
+					continue;
+				ret.bus = bus;
+				ret.dev = dev;
+				ret.func = func;
+				ret.class = class;
+				ret.subclass = subclass;
+				ret.progif = progif;
+				ret.vendor_id = vendor_id;
+				ret.device_id = dev_id;
+				return ret;
+			}
+		}
+	}
+	return ret;
 }

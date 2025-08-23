@@ -23,6 +23,16 @@ struct pci_bar{
 struct pci_bar_data{
 	struct pci_bar pcibars[6];
 };
+struct pci_device{
+	uint8_t bus;
+	uint8_t dev;
+	uint8_t func;
+	uint8_t class;
+	uint8_t subclass;
+	uint8_t progif;
+	uint32_t vendor_id;
+	uint32_t device_id;
+};
 extern unsigned char*** pci_buses;
 uint32_t pci_read_dword_conf(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
 uint16_t pci_read_word_conf(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset);
@@ -37,4 +47,5 @@ const char* pci_get_vendorname(uint32_t vendorid);
 int pci_init(void);
 int pci_deinit(void);
 int pci_device_exists(uint8_t bus, uint8_t dev, uint8_t func);
+struct pci_device pci_get_device(uint8_t class, uint8_t subclass, uint8_t progif, uint8_t bus_max, uint8_t dev_max);
 #endif
