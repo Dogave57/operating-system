@@ -9,7 +9,7 @@ mov si, bootmsg
 call print
 clc
 mov ah, 0x2
-mov al, 32
+mov al, 64
 xor ch, ch
 mov cl, 2
 xor dh, dh
