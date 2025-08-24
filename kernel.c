@@ -54,7 +54,6 @@ void kentry(void){
 		panic("this operating system needs atleast 2mb of memory to run!\n");
 		return;
 	}
-	printf("%d KB of memory avalible\n", ((int)avalibleMemory/1000));	
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
 	printf("drive sectors: %d\n", sectors.low);
 	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, NULL);
@@ -92,35 +91,47 @@ void kentry(void){
 	}
 	uint32_t smbios = get_smbios();
 	struct smbios_sysinfo* sysinfo = smbios_get_sysinfo();
-	char* manufacturer_name = smbios_get_manufacturer_name();
-	char* product_name = smbios_get_product_name();
-	char* version_name = smbios_get_version_name();
-	char* serial_name = smbios_get_serial_name();
-	char* sku_name = smbios_get_sku_name();
-	char* family_name = smbios_get_family_name();
+	if (!sysinfo)
+		panic("failed to get smbios system information\n");
+	struct smbios_meminfo* meminfo = smbios_get_meminfo();
+	if (!meminfo)
+		panic("failed to get smbios memory information\n");
+	char* sys_manufacturer_name = smbios_get_sys_manufacturer_name();
+	char* sys_product_name = smbios_get_sys_product_name();
+	char* sys_version_name = smbios_get_sys_version_name();
+	char* sys_serial_name = smbios_get_sys_serial_name();
+	char* sys_sku_name = smbios_get_sys_sku_name();
+	char* sys_family_name = smbios_get_sys_family_name();
 	if (sysinfo==(struct smbios_sysinfo*)0x0){
 		panic("failed to get smbios system info\n");
 		__asm__ volatile("hlt");
 	}
-	if (manufacturer_name)
-		printf("manufacturer: %s\n", manufacturer_name);
-	if (product_name)
-		printf("product: %s\n", product_name);
-	if (version_name)
-		printf("version: %s\n", version_name);
-	if (serial_name)
-		printf("serial: %s\n", serial_name);
-	if (sku_name)
-		printf("sku name: %s\n", sku_name);
-	if (family_name)
-		printf("family name: %s\n", family_name);
-	print("uuid: ");
-	for (unsigned int i = 0;i<16;i++){
-		printf("%x", sysinfo->uuid[i]);
-		if (i+4!=i)
- 			putchar('-');
-	}
-	putchar('\n');
+	if (sys_manufacturer_name)
+		printf("manufacturer: %s\n", sys_manufacturer_name);
+	if (sys_product_name)
+		printf("product: %s\n", sys_product_name);
+	if (sys_version_name)
+		printf("version: %s\n", sys_version_name);
+	if (sys_serial_name)
+		printf("serial: %s\n", sys_serial_name);
+	if (sys_sku_name)
+		printf("sku name: %s\n", sys_sku_name);
+	if (sys_family_name)
+		printf("family name: %s\n", sys_family_name);
+	char* mem_manufacturer_name = smbios_get_memory_manufacturer_name();
+	char* mem_serial_name = smbios_get_memory_serial_name();
+	char* mem_asset_tag_name = smbios_get_memory_asset_tag_name();
+	char* mem_partnum_name = smbios_get_memory_partnum_name();
+	printf("%dmb of memory installed\n", meminfo->size);
+	printf("memory speed: %dmhz\n", meminfo->speed);
+	printf("form factor: %d\n", meminfo->form_factor);
+	if (mem_manufacturer_name)
+		printf("manufacturer: %s\n", mem_manufacturer_name);	
+	struct smbios_biosinfo* biosinfo = smbios_get_biosinfo();
+	if (!biosinfo)
+		print("no bios info provided in smbios tables\n");
+	else
+		print("bios info providedin smbios tables\n");
 	set_multithreading(0);
 	while (1){};
 	return;	
