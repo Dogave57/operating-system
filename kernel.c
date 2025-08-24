@@ -131,7 +131,23 @@ void kentry(void){
 	if (!biosinfo)
 		print("no bios info provided in smbios tables\n");
 	else
-		print("bios info providedin smbios tables\n");
+		print("bios info provided in smbios tables\n");
+	struct smbios_moboinfo* moboinfo = smbios_get_moboinfo();
+	if (moboinfo){
+		char* mobo_manufacturer_name = smbios_get_mobo_manufacturer_name();
+		char* mobo_product_name = smbios_get_mobo_product_name();
+		char* mobo_version_name = smbios_get_mobo_version_name();
+		char* mobo_serial_name = smbios_get_mobo_serial_name();
+		char* mobo_asset_tag_name = smbios_get_mobo_serial_name();
+		char* mobo_location_chassis = smbios_get_mobo_chassis_location_name();
+		if (mobo_manufacturer_name)
+			printf("mobo manufacturer: %s\n", mobo_manufacturer_name);	
+		if (mobo_product_name)
+			printf("mobo product: %s\n", mobo_product_name);
+		if (mobo_version_name)
+			printf("mobo version: %s\n", mobo_version_name);
+	}else
+		print("no smbios mobo information provided\n");
 	set_multithreading(0);
 	while (1){};
 	return;	
