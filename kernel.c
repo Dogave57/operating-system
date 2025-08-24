@@ -96,12 +96,12 @@ void kentry(void){
 	struct smbios_meminfo* meminfo = smbios_get_meminfo();
 	if (!meminfo)
 		panic("failed to get smbios memory information\n");
-	char* sys_manufacturer_name = smbios_get_sys_manufacturer_name();
-	char* sys_product_name = smbios_get_sys_product_name();
-	char* sys_version_name = smbios_get_sys_version_name();
-	char* sys_serial_name = smbios_get_sys_serial_name();
-	char* sys_sku_name = smbios_get_sys_sku_name();
-	char* sys_family_name = smbios_get_sys_family_name();
+	char* sys_manufacturer_name = smbios_get_string((void*)sysinfo, sysinfo->manufacturer_name);
+	char* sys_product_name = smbios_get_string((void*)sysinfo, sysinfo->product_name);
+	char* sys_version_name = smbios_get_string((void*)sysinfo, sysinfo->version_name);
+	char* sys_serial_name = smbios_get_string((void*)sysinfo, sysinfo->serial_name);
+	char* sys_sku_name = smbios_get_string((void*)sysinfo, sysinfo->sku_name);
+	char* sys_family_name = smbios_get_string((void*)sysinfo, sysinfo->family_name);
 	if (sysinfo==(struct smbios_sysinfo*)0x0){
 		panic("failed to get smbios system info\n");
 		__asm__ volatile("hlt");
@@ -118,10 +118,10 @@ void kentry(void){
 		printf("sku name: %s\n", sys_sku_name);
 	if (sys_family_name)
 		printf("family name: %s\n", sys_family_name);
-	char* mem_manufacturer_name = smbios_get_memory_manufacturer_name();
-	char* mem_serial_name = smbios_get_memory_serial_name();
-	char* mem_asset_tag_name = smbios_get_memory_asset_tag_name();
-	char* mem_partnum_name = smbios_get_memory_partnum_name();
+	char* mem_manufacturer_name = smbios_get_string((void*)meminfo, meminfo->manufacturer_name);
+	char* mem_serial_name = smbios_get_string((void*)meminfo, meminfo->serial_name);
+	char* mem_asset_tag_name = smbios_get_string((void*)meminfo, meminfo->asset_tag_name);
+	char* mem_partnum_name = smbios_get_string((void*)meminfo, meminfo->partnum_name);
 	printf("%dmb of memory installed\n", meminfo->size);
 	printf("memory speed: %dmhz\n", meminfo->speed);
 	if (mem_manufacturer_name)
@@ -129,12 +129,12 @@ void kentry(void){
 	struct smbios_biosinfo* biosinfo = smbios_get_biosinfo();
 	struct smbios_moboinfo* moboinfo = smbios_get_moboinfo();
 	if (moboinfo){
-		char* mobo_manufacturer_name = smbios_get_mobo_manufacturer_name();
-		char* mobo_product_name = smbios_get_mobo_product_name();
-		char* mobo_version_name = smbios_get_mobo_version_name();
-		char* mobo_serial_name = smbios_get_mobo_serial_name();
-		char* mobo_asset_tag_name = smbios_get_mobo_serial_name();
-		char* mobo_location_chassis = smbios_get_mobo_chassis_location_name();
+		char* mobo_manufacturer_name = smbios_get_string((void*)moboinfo, moboinfo->manufacturer_name);
+		char* mobo_product_name = smbios_get_string((void*)moboinfo, moboinfo->product_name);
+		char* mobo_version_name = smbios_get_string((void*)moboinfo, moboinfo->version_name);
+		char* mobo_serial_name = smbios_get_string((void*)moboinfo, moboinfo->serial_name);
+		char* mobo_asset_tag_name = smbios_get_string((void*)moboinfo, moboinfo->asset_tag_name);
+		char* mobo_location_chassis = smbios_get_string((void*)moboinfo, moboinfo->location_in_chassis_name);
 		if (mobo_manufacturer_name)
 			printf("mobo manufacturer: %s\n", mobo_manufacturer_name);	
 		if (mobo_product_name)
@@ -145,12 +145,12 @@ void kentry(void){
 	struct smbios_cpuinfo* cpuinfo = smbios_get_cpuinfo();
 	if (!cpuinfo)
 		panic("failed to get smbios cpu info entry!\n");
-	char* cpu_socket_name = smbios_get_cpu_socket_name();
-	char* cpu_manufacturer_name = smbios_get_cpu_manufacturer_name();
-	char* cpu_version_name = smbios_get_cpu_version_name();
-	char* cpu_serial_name = smbios_get_cpu_serial_name();
-	char* cpu_asset_tag_name = smbios_get_cpu_asset_tag_name();
-	char* cpu_partnum_name = smbios_get_cpu_partnum_name();
+	char* cpu_socket_name = smbios_get_string((void*)cpuinfo, cpuinfo->socket_name);
+	char* cpu_manufacturer_name = smbios_get_string((void*)cpuinfo, cpuinfo->manufacturer_name);
+	char* cpu_version_name = smbios_get_string((void*)cpuinfo, cpuinfo->version_name);
+	char* cpu_serial_name = smbios_get_string((void*)cpuinfo, cpuinfo->serial_name);
+	char* cpu_asset_tag_name = smbios_get_string((void*)cpuinfo, cpuinfo->asset_tag_name);
+	char* cpu_partnum_name = smbios_get_string((void*)cpuinfo, cpuinfo->partnum_name);
 	printf("cpu socket: %s\n", cpu_socket_name);
 	printf("cpu cores: %d\n", cpuinfo->corecnt);
 	printf("cpu threads: %d\n", cpuinfo->threadcnt);
