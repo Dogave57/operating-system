@@ -1,0 +1,95 @@
+[33mcommit c938b01fa4d8070443866a58cc31c566edb44851[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Sat Aug 23 22:48:39 2025 -0500
+
+    expanded kernel to 64 sectors
+
+[33mcommit 1aa492960185bd69a7ee0c67b48bbadbcbb07ce0[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Sat Aug 23 02:04:00 2025 -0500
+
+    added feature to be able to search for certain pci devices
+
+[33mcommit 1e02a5d5eb616c1ee414d3da2de5deb3eefe914d[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Fri Aug 22 23:03:38 2025 -0500
+
+    added bar detection to pci drivers
+
+[33mcommit 9149d6e6fafabb5545a40521019354199fe0e138[m
+Author: System Administrator <root@Zevs-MacBook-Pro.attlocal.net>
+Date:   Fri Aug 22 07:39:21 2025 -0500
+
+    added some pci drivers
+
+[33mcommit 5196fdd12f25b91d1faa520dc78d348d83544613[m
+Author: System Administrator <root@Zevs-MacBook-Pro.attlocal.net>
+Date:   Mon Aug 18 17:33:02 2025 -0500
+
+    implemented a reliable exception handler
+
+[33mcommit ae4c72add959d3e7d0d24324d088bd77afbbdeba[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Fri Aug 15 17:01:05 2025 -0500
+
+    backup
+
+[33mcommit 724518b622651a794f0d4a960c53f6a4b4612878[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Fri Aug 15 14:11:28 2025 -0500
+
+    backup
+
+[33mcommit 3ff11927a1698a93ba4ab1507b0ece2aefc2ceda[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Thu Aug 14 13:17:37 2025 -0500
+
+    backup
+
+[33mcommit e13510f8d1d8271bc2aa465865cb311d4bfba233[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Wed Aug 13 22:23:17 2025 -0500
+
+    backup
+
+[33mcommit ca95cf30e4569d252d31591b6df7806b0500892b[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Tue Aug 12 23:58:00 2025 -0500
+
+    added some stuff for the filesystem
+
+[33mcommit 394a1c6b06aff4d959ba39b7adc89493e30ef43b[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Tue Aug 12 02:49:40 2025 -0500
+
+    adjusted bootloader for new kernel sectors
+
+[33mcommit 892e9b97361f59408b710b64c7b4798532272002[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Tue Aug 12 02:28:20 2025 -0500
+
+    added ability to write sectors to ata drives
+
+[33mcommit 7b1eca882f8733b2283472a3d70fdc5917321efc[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Tue Aug 12 00:20:48 2025 -0500
+
+    expanded kernel to 16kb
+
+[33mcommit 4980409f9831ab42a279ad9af3a48b0c00c2ccfd[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Tue Aug 12 00:11:38 2025 -0500
+
+    added timer and dynamic memory allocation
+
+[33mcommit 544f807fbc60367f158c37780a0f77c3f499982d[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Mon Aug 11 16:59:50 2025 -0500
+
+    actually added ata drivers
+
+[33mcommit b70651f9fea645c1e5bee53f48103fd655adb6f7[m
+Author: Dogave57 <diddyenjoyer4@gmail.com>
+Date:   Mon Aug 11 16:16:24 2025 -0500
+
+    added ata drivers

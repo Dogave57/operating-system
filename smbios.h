@@ -19,14 +19,25 @@ struct smbios_header{
 }__attribute__((packed));
 struct smbios_sysinfo{
 	struct smbios_header header;
-	uint8_t manufacturer_index;
-	uint8_t product_index;
-	uint8_t version_index;
-	uint16_t uuid;
+	uint8_t manufacturer_name;
+	uint8_t product_name;
+	uint8_t version_name;
+	uint8_t serial_name;
+	uint8_t uuid[16];
 	uint8_t wakeup_type;
-	uint8_t sku_number;
-	uint8_t family;
+	uint8_t sku_name;
+	uint8_t family_name;
+	char padding0[5];
 }__attribute__((packed));
 uint32_t get_smbios(void);
-struct smbios_sysinfo* smbios_get_sysinfo(uint32_t smbios);
+struct smbios_sysinfo* smbios_get_sysinfo(void);
+char* smbios_get_string(char* blob, unsigned int index);
+char* smbios_get_manufacturer_name(void);
+char* smbios_get_product_name(void);
+char* smbios_get_version_name(void);
+char* smbios_get_serial_name(void);
+uint8_t* smbios_get_uuid(void);
+char* smbios_get_sku_name(void);
+char* smbios_get_family_name(void);
 #endif
+

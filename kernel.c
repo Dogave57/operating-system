@@ -91,25 +91,36 @@ void kentry(void){
 		}
 	}
 	uint32_t smbios = get_smbios();
-	struct smbios_sysinfo* sysinfo = smbios_get_sysinfo(smbios);
+	struct smbios_sysinfo* sysinfo = smbios_get_sysinfo();
+	char* manufacturer_name = smbios_get_manufacturer_name();
+	char* product_name = smbios_get_product_name();
+	char* version_name = smbios_get_version_name();
+	char* serial_name = smbios_get_serial_name();
+	char* sku_name = smbios_get_sku_name();
+	char* family_name = smbios_get_family_name();
 	if (sysinfo==(struct smbios_sysinfo*)0x0){
 		panic("failed to get smbios system info\n");
 		__asm__ volatile("hlt");
 	}
-	char* strsect = ((char*)sysinfo)+sizeof(struct smbios_header)+sysinfo->header.len;
-	unsigned int strindex = 0;
-	for (unsigned int i = 0;;i++){
-		if (strsect[i]!=0)
-			continue;
-		if (!strsect[i+1])
-			break;
-		strindex++;
-		if (strindex==sysinfo->manufacturer_index){
-		//	printf("manufacturer\n");
-		}
+	if (manufacturer_name)
+		printf("manufacturer: %s\n", manufacturer_name);
+	if (product_name)
+		printf("product: %s\n", product_name);
+	if (version_name)
+		printf("version: %s\n", version_name);
+	if (serial_name)
+		printf("serial: %s\n", serial_name);
+	if (sku_name)
+		printf("sku name: %s\n", sku_name);
+	if (family_name)
+		printf("family name: %s\n", family_name);
+	print("uuid: ");
+	for (unsigned int i = 0;i<16;i++){
+		printf("%x", sysinfo->uuid[i]);
+		if (i+4!=i)
+ 			putchar('-');
 	}
-//	printf("version: %s\n", strsect+sysinfo->version_index);
-//	printf("uuid: %x\n", sysinfo->uuid);
+	putchar('\n');
 	set_multithreading(0);
 	while (1){};
 	return;	
