@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "filesystem.h"
 #include "usb.h"
+#include "smbios.h"
 #include "pci.h"
 #include "kernel.h"
 unsigned char shiftPressed = 0;
@@ -72,7 +73,7 @@ void kentry(void){
 				uint32_t vendor_id = pci_get_vendor(bus,dev,func);
 				uint32_t device_id = pci_get_devid(bus,dev,func);
 				pci_get_bars(bus,dev,func,&bar_data);
-				printf("pci device at bus %d device %d func: %d vendor: %x device id: %x\n", bus, dev, func, vendor_id, device_id);
+				//printf("pci device at bus %d device %d func: %d vendor: %x device id: %x\n", bus, dev, func, vendor_id, device_id);
 				for (unsigned int bar = 0;bar<6;bar++){
 					struct pci_bar pcibar = bar_data.pcibars[bar];
 					if (!pcibar.base)
@@ -89,6 +90,26 @@ void kentry(void){
 			}	
 		}
 	}
+	uint32_t smbios = get_smbios();
+	struct smbios_sysinfo* sysinfo = smbios_get_sysinfo(smbios);
+	if (sysinfo==(struct smbios_sysinfo*)0x0){
+		panic("failed to get smbios system info\n");
+		__asm__ volatile("hlt");
+	}
+	char* strsect = ((char*)sysinfo)+sizeof(struct smbios_header)+sysinfo->header.len;
+	unsigned int strindex = 0;
+	for (unsigned int i = 0;;i++){
+		if (strsect[i]!=0)
+			continue;
+		if (!strsect[i+1])
+			break;
+		strindex++;
+		if (strindex==sysinfo->manufacturer_index){
+		//	printf("manufacturer\n");
+		}
+	}
+//	printf("version: %s\n", strsect+sysinfo->version_index);
+//	printf("uuid: %x\n", sysinfo->uuid);
 	set_multithreading(0);
 	while (1){};
 	return;	

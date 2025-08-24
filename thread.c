@@ -48,7 +48,6 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 	newthread->id = threads_created;
 	newthread->arg = arg;
 	threads_cnt++;
-	print("done creating thread\n");
 	return newthread;
 }
 int thread_free(struct thread_t* thread){

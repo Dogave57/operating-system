@@ -16,8 +16,9 @@ i686-elf-gcc -c -O0 -fno-pic thread.c $CFLAGS -o thread.o
 i686-elf-gcc -c -O0 -fno-pic exception.c $CFLAGS -o exception.o
 i686-elf-gcc -c -O0 -fno-pic usb.c $CFLAGS -o usb.o
 i686-elf-gcc -c -O0 -fno-pic pci.c $CFLAGS -o pci.o
-i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o -o kernel.elf
+i686-elf-gcc -c -O0 -fno-pic smbios.c $CFLAGS -o smbios.o
+i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
-truncate -s 16384 kernel.bin
+truncate -s 32768 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
