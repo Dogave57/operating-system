@@ -10,6 +10,7 @@ char* serial_str = (char*)0x0;
 struct smbios_biosinfo* biosinfo = (struct smbios_biosinfo*)0x0;
 struct smbios_sysinfo* sysinfo = (struct smbios_sysinfo*)0x0;
 struct smbios_moboinfo* moboinfo = (struct smbios_moboinfo*)0x0;
+struct smbios_cpuinfo* cpuinfo = (struct smbios_cpuinfo*)0x0;
 struct smbios_meminfo* meminfo = (struct smbios_meminfo*)0x0;
 uint32_t get_smbios(void){
 	if (smbios!=0)
@@ -63,6 +64,14 @@ struct smbios_moboinfo* smbios_get_moboinfo(void){
 		smbios = get_smbios();
 	moboinfo = (struct smbios_moboinfo*)smbios_get_entry(SMBIOS_HEADER_MOBOINFO);
 	return moboinfo;
+}
+struct smbios_cpuinfo* smbios_get_cpuinfo(void){
+	if (cpuinfo)
+		return cpuinfo;
+	if (!smbios)
+		smbios = get_smbios();
+	cpuinfo = (struct smbios_cpuinfo*)smbios_get_entry(SMBIOS_HEADER_CPU_INFO);
+	return cpuinfo;
 }
 struct smbios_meminfo* smbios_get_meminfo(void){
 	if (meminfo)
@@ -262,6 +271,72 @@ char* smbios_get_mobo_chassis_location_name(void){
 		return (char*)0x0;
 	strsect = (char*)((char*)moboinfo+moboinfo->header.len);
 	return (char*)smbios_get_string(strsect, moboinfo->location_in_chassis_name);
+}
+char* smbios_get_cpu_socket_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->socket_name);
+}
+char* smbios_get_cpu_manufacturer_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->manufacturer_name);
+}
+char* smbios_get_cpu_version_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->version_name);
+}
+char* smbios_get_cpu_serial_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->serial_name);
+}
+char* smbios_get_cpu_asset_tag_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->asset_tag_name);
+}
+char* smbios_get_cpu_partnum_name(void){
+	if (!smbios)
+		smbios = get_smbios();
+	if (!cpuinfo)
+		cpuinfo = smbios_get_cpuinfo();
+	char* strsect = (char*)0x0;
+	if (!cpuinfo)
+		return (char*)0x0;
+	strsect = (char*)((char*)cpuinfo+cpuinfo->header.len);
+	return (char*)smbios_get_string(strsect, cpuinfo->partnum_name);
 }
 char* smbios_get_memory_manufacturer_name(void){
 	if (!smbios)
