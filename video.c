@@ -87,7 +87,7 @@ void putchar(char ch){
 		case '\r':
 			vgaIndex-=vgaIndex%VGA_WIDTH*2;
 		break;
-		case '\b':;
+		case '\b':
 			  vgaIndex-=2;
 			  ((unsigned char*)VGA_BUFFER)[vgaIndex] = ' ';
 		break;
@@ -98,7 +98,7 @@ void putchar(char ch){
 			break;
 		}
 	}
-	if (vgaIndex>VGA_WIDTH*VGA_HEIGHT*2){
+	if (vgaIndex>=(VGA_WIDTH*VGA_HEIGHT*2)){
 		clear();
 		return;
 	}
