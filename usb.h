@@ -1,37 +1,47 @@
 #ifndef _USB
 #define _USB
-struct usb2_transfer_desc;
 struct usb2_dev_desc;
+struct usb2_packet_header;
+struct usb2_transfer_desc;
 struct usb2_queue_head;
+struct usb2_dev_desc{
+	uint8_t len;
+	uint8_t descType;
+	uint16_t usb_vers;
+	uint8_t devclass;
+	uint8_t dev_subclass;
+	uint8_t dev_protocol;
+	uint8_t max_packetsize;
+	uint16_t vendor_id;
+	uint16_t dev_id;
+	uint16_t dev_release;
+	uint8_t manufacturer_strindex;
+	uint8_t product_index;	
+	uint8_t serial_index;
+	uint8_t num_configs;
+}__attribute__((packed));
+struct usb2_packet_header{
+	uint8_t mrequest_type;
+	uint8_t request;
+	uint16_t value;
+	uint16_t index;
+	uint16_t len;
+}__attribute__((packed));
 struct usb2_dev{
 	struct usb2_dev* flink;
 	struct usb2_dev* blink;
 	struct usb2_queue_head* qh;
-	struct usb2_dev_desc* dev_desc;
+	struct usb2_packet_header desc_hdr;
+	struct usb2_dev_desc desc;
 	uint32_t port;
-};
+}__attribute__((packed));
 struct usb2_transfer_desc{
 	struct usb2_transfer_desc* flink;
 	uint32_t token;
 	uint32_t buffer[5];
 	uint32_t reserved;
 	struct usb2_transfer_desc* blink;
-}__attribute__((packed));
-struct usb2_dev_desc{
-	unsigned char len;
-	unsigned char descType;
-	uint16_t usb_vers;
-	unsigned char devclass;
-	unsigned char dev_subclass;
-	unsigned char dev_protocol;
-	unsigned char max_packetsize;
-	uint16_t vendor_id;
-	uint16_t dev_id;
-	uint16_t dev_release;
-	unsigned char manufacturer_strindex;
-	unsigned char product_index;	
-	unsigned char serial_index;
-	unsigned char num_configs;
+	struct usb2_queue_head* qh;
 }__attribute__((packed));
 struct usb2_queue_head{
 	struct usb2_queue_head* flink;

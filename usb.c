@@ -15,7 +15,7 @@ static uint32_t* usb2_base = (uint32_t*)0x0;
 static uint32_t* usb2_registers = (uint32_t*)0x0;
 static uint32_t* usb2_usbcmd = (uint32_t*)0x0;
 static uint32_t* usb2_status = (uint32_t*)0x0;
-static struct usb2_queue_head* usb2_async_list = (struct usb2_queue_head*)0x0;
+static struct usb2_queue_head** usb2_async_list = (struct usb2_queue_head**)0x0;
 static uint32_t* usb2_portscn = (uint32_t*)0x0;
 struct usb2_queue_head* usb2_add_qh(struct usb2_queue_head qh){
 	struct usb2_queue_head* pqh = (struct usb2_queue_head*)kmalloc(sizeof(struct usb2_queue_head));
@@ -25,7 +25,7 @@ struct usb2_queue_head* usb2_add_qh(struct usb2_queue_head qh){
 	if (!usb2_last_qh){
 		usb2_base_qh = pqh;
 		usb2_last_qh = pqh;
-		*usb2_async_list = qh;
+		*usb2_async_list = pqh;
 	}
 	usb2_last_qh->flink = pqh;
 	pqh->blink = usb2_last_qh;
@@ -35,6 +35,12 @@ struct usb2_queue_head* usb2_add_qh(struct usb2_queue_head qh){
 int usb2_remove_qh(struct usb2_queue_head* pqh){
 	if (!pqh)
 		return -1;
+	if (pqh==usb2_last_qh)
+		usb2_last_qh = pqh->blink;
+	if (pqh==usb2_base_qh){
+		usb2_base_qh = pqh->flink;
+		*usb2_async_list = usb2_base_qh;
+	}
 	if (pqh->flink)
 		pqh->flink->blink = pqh->blink;
 	if (pqh->blink)
@@ -58,6 +64,8 @@ struct usb2_transfer_desc* usb2_add_td(struct usb2_queue_head* pqh, struct usb2_
 	struct usb2_transfer_desc* ptd = (struct usb2_transfer_desc*)kmalloc(sizeof(struct usb2_transfer_desc));
 	if (!ptd)
 		return ptd;
+	*ptd = td;
+	ptd->qh = pqh;
 	if (!pqh->last_td){
 		pqh->last_td = ptd;
 		pqh->first_td = ptd;
@@ -75,6 +83,11 @@ int usb2_remove_td(struct usb2_transfer_desc* ptd){
 		ptd->flink->blink = ptd->blink;
 	if (ptd->blink)
 		ptd->blink->flink = ptd->flink;
+	if (ptd->qh->first_td==ptd)
+		ptd->qh->first_td = ptd->flink;
+	if (ptd->qh->last_td==ptd)
+		ptd->qh->last_td = ptd->blink;
+	kfree((void*)ptd);
 	return 0;
 }
 int usb2_remove_all_td(struct usb2_queue_head* pqh){
@@ -84,9 +97,7 @@ int usb2_remove_all_td(struct usb2_queue_head* pqh){
 	struct usb2_transfer_desc* current_ptd = (struct usb2_transfer_desc*)pqh->first_td;
 	while (current_ptd){
 		struct usb2_transfer_desc* flink = current_ptd->flink;
-		current_ptd->flink = (struct usb2_transfer_desc*)0x0;
-		current_ptd->blink = (struct usb2_transfer_desc*)0x0;
-		kfree(current_ptd);
+		usb2_remove_td(current_ptd);	
 		current_ptd=flink;
 	}
 	return 0;
@@ -109,6 +120,10 @@ struct usb2_dev* usb2_register_dev(struct usb2_dev dev){
 int usb2_unregister_dev(struct usb2_dev* pdev){
 	if (!pdev)
 		return -1;
+	if (pdev==usb2_base_dev)
+		usb2_base_dev = pdev->flink;
+	if (pdev==usb2_last_dev)
+		usb2_last_dev = pdev->blink;
 	if (pdev->flink)
 		pdev->flink->blink = pdev->blink;
 	if (pdev->blink)
@@ -146,7 +161,7 @@ int usb2_init(void){
 	usb2_registers = (uint32_t*)((unsigned char*)usb2_base+registers_off);
 	usb2_usbcmd = (uint32_t*)(usb2_registers);
 	usb2_status = (uint32_t*)(usb2_registers+0x1);
-	usb2_async_list = (struct usb2_queue_head*)(usb2_registers+0x18);
+	usb2_async_list = (struct usb2_queue_head**)(usb2_registers+0x18);
 	usb2_portscn = (uint32_t*)(usb2_registers+0x10);
 //	printf("usb 2.0 mmio address: %p\n", (void*)usb2_base);
 	printf("port count: %d\n", usb2_portcnt);
@@ -161,36 +176,30 @@ int usb2_init(void){
 		panic("usb2 controller reported system error\n");
 		return -1;
 	}
+	*usb2_usbcmd |= (1<<5);
 	for (unsigned int i = 0;i<usb2_portcnt;i++){
 		uint32_t portval = usb2_portscn[i]&0xFF;
 		unsigned char portspeed = 0;
 		struct usb2_dev_desc dev_desc = {0};
 		struct usb2_queue_head newqh = {0};
 		struct usb2_transfer_desc out_td = {0};
+		struct usb2_transfer_desc in_td = {0};
+		struct usb2_transfer_desc control_td = {0};
 		struct usb2_dev dev = {0};
 		struct usb2_queue_head* pnewqh = (struct usb2_queue_head*)0x0;
 		struct usb2_transfer_desc* pout_td = (struct usb2_transfer_desc*)0x0;
+		struct usb2_transfer_desc* pin_td = (struct usb2_transfer_desc*)0x0;
+		struct usb2_transfer_desc* pcontrol_td = (struct usb2_transfer_desc*)0x0;
 		struct usb2_dev* pnew_dev = (struct usb2_dev*)0x0;
 		if (!(portval&(1<<0)))
 			continue;
 		usb2_portscn[i]|=(1<<7);
 		outb(0x0,0x0);
 		portspeed = ((unsigned char*)(usb2_portscn+i))[9];
-		//printf("device connected to port %d with speed %d\n", i, portspeed);
 		pnewqh = usb2_add_qh(newqh);
 		if (!pnewqh){
 			printf("failed to create new queue head\n");
 			return -1;	
-		}
-		out_td.token |= 0xb00<<0;
-		out_td.token |= 3<<2;
-		out_td.token |= 1<<7;
-		out_td.token |= 64<<16;
-		out_td.token |= 1<<31;
-		pout_td = usb2_add_td(pnewqh, out_td);
-		if (!pout_td){
-			printf("failed to add output transfer descn\n");
-			return -1;
 		}
 		dev.port = i;
 		dev.qh = pnewqh;
@@ -199,11 +208,45 @@ int usb2_init(void){
 			printf("failed to register new device\n");
 			return -1;
 		}
+		pout_td = usb2_add_td(pnewqh, out_td);
+		if (!pout_td){
+			printf("failed to add output transfer descriptor\n");
+			return -1;
+		}
+		pin_td = usb2_add_td(pnewqh, in_td);
+		if (!pin_td){
+			printf("failed to add input transfer descriptor\n");
+			return -1;
+		}
+		pcontrol_td = usb2_add_td(pnewqh, control_td);
+		if (!pcontrol_td){
+			printf("failed to add control transfer descriptor\n");
+			return -1;
+		}
+		pnew_dev->desc_hdr.mrequest_type = 0x80;
+		pnew_dev->desc_hdr.request = 0x06;
+		pnew_dev->desc_hdr.value = 0x0100;
+		pnew_dev->desc_hdr.index = 0x0;
+		pnew_dev->desc_hdr.len = sizeof(struct usb2_dev_desc);
+		pcontrol_td->buffer[0] = (uint32_t)&pnew_dev->desc_hdr;
+		pcontrol_td->token = (1<<31)|(8<<16)|(0<<8);
 	}
+	sleep(50);
 	struct usb2_dev* current_dev = (struct usb2_dev*)usb2_base_dev;
 	while (current_dev){
-		printf("device found at port: %d with qh %p\n", current_dev->port, current_dev->qh);
+		printf("vendor id: %x | dev id: %x\n", current_dev->desc.vendor_id, current_dev->desc.dev_id);
 		current_dev=current_dev->flink;
+	}
+	*usb2_async_list = usb2_base_qh;
+	struct usb2_queue_head* current_qh = usb2_base_qh;
+	while (current_qh){
+	//	printf("qh: %p\n", current_qh);
+		struct usb2_transfer_desc* current_td = (struct usb2_transfer_desc*)current_qh->first_td;
+		while (current_td){
+			printf("td: %p with token: %x | ", current_td, current_td->token);
+			current_td=current_td->flink;
+		}
+		current_qh=current_qh->flink;
 	}
 	return 0;	
 }
