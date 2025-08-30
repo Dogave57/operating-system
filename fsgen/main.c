@@ -28,10 +28,10 @@ int main(int argc, char** argv){
 		printf("failed to allocate memory for filesystem (%s)\n", strerror(errno));
 		return -1;
 	}
-	unsigned int* fat = (unsigned int*)(fsbuf+sizeof(struct fs_hdr));
+	unsigned int* fat = (unsigned int*)(fsbuf+512);
 	unsigned int fat_index = 0;
 	struct fs_hdr* hdr = (struct fs_hdr*)fsbuf;
-	hdr->signature = FS_SIGNATURE;
+	hdr->signature = EPICFS_SIGNATURE;
 	hdr->bytes_per_cluster = 512;
 	hdr->fat_size = drivesize/32;
 	hdr->data_off = hdr->fat_size/hdr->bytes_per_cluster;
@@ -50,7 +50,7 @@ int main(int argc, char** argv){
 		uint64_t filesize = (uint64_t)ftell(newfile);
 		rewind(newfile);
 		fat[fat_index]=0x1;
-		fatindex++;
+		fat_index++;
 		fclose(newfile);
 	}
 	closedir(dir);

@@ -4,7 +4,7 @@
 #include "kernel.h"
 #define FS_RESERVED_SECTORS 128
 #define EPICFS_SIGNATURE (unsigned int)0x43495045 //EPIC
-#define EPICFS_EOC (unsigned int)0xFFFF
+#define EPICFS_EOC (unsigned int)0x0
 #define EPICFS_FC (unsigned int)0xFFFE
 struct epic_fshdr{
 	unsigned int signature;
