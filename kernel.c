@@ -159,6 +159,11 @@ void kentry(void){
 	if (fsinfo.signature!=EPICFS_SIGNATURE){
 		panic("invalid file system signature\n");
 	}
+	//printf("bytes per cluster: %d\n", fsinfo.bytes_per_cluster);
+	//printf("data off: %d\n", fsinfo.data_off);
+	unsigned int cluster = 0x0;
+	unsigned int fat_sector = 129;
+	unsigned char sector_data[512] = {0};	
 	set_multithreading(0);
 	while (1){};
 	return;	

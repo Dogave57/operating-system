@@ -14,7 +14,8 @@ int main(int argc, char** argv){
 	if (!maindir||!outputfs||!strdrivesize)
 		return -1;
 	size_t drivesize = strtoull(strdrivesize, NULL, 0);
-	printf("drive size: %zu\n", drivesize);
+	if (drivesize%2)
+		drivesize++;
 	DIR* dir = opendir(maindir);
 	if (!dir){
 		printf("failed to open dir (%s)\n", strerror(errno));
@@ -27,8 +28,13 @@ int main(int argc, char** argv){
 		printf("failed to allocate memory for filesystem (%s)\n", strerror(errno));
 		return -1;
 	}
+	unsigned int* fat = (unsigned int*)(fsbuf+sizeof(struct fs_hdr));
+	unsigned int fat_index = 0;
 	struct fs_hdr* hdr = (struct fs_hdr*)fsbuf;
 	hdr->signature = FS_SIGNATURE;
+	hdr->bytes_per_cluster = 512;
+	hdr->fat_size = drivesize/32;
+	hdr->data_off = hdr->fat_size/hdr->bytes_per_cluster;
 	while ((dirent=readdir(dir))){
 		if (dirent->d_type!=DT_REG)
 			continue;
@@ -43,9 +49,12 @@ int main(int argc, char** argv){
 		fseek(newfile,0,SEEK_END);
 		uint64_t filesize = (uint64_t)ftell(newfile);
 		rewind(newfile);
+		fat[fat_index]=0x1;
+		fatindex++;
 		fclose(newfile);
 	}
 	closedir(dir);
+	fat[fat_index] = EPICFS_EOC;
 	size_t reserved_bytes = 512*128;
 	unsigned char* outbuf = (unsigned char*)malloc(drivesize+reserved_bytes);
 	if (!outbuf){
