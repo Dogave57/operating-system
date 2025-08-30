@@ -23,3 +23,5 @@ i686-elf-objcopy -O binary kernel.elf kernel.bin
 truncate -s 32768 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
+sudo cat os.img > drive.img
+sudo ./'fsgen/main' fsgen/files drive.img 1000000

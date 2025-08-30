@@ -152,8 +152,13 @@ void kentry(void){
 	char* cpu_asset_tag_name = smbios_get_string((void*)cpuinfo, cpuinfo->asset_tag_name);
 	char* cpu_partnum_name = smbios_get_string((void*)cpuinfo, cpuinfo->partnum_name);
 	printf("cpu socket: %s\n", cpu_socket_name);
-	printf("cpu cores: %d\n", cpuinfo->corecnt);
-	printf("cpu threads: %d\n", cpuinfo->threadcnt);
+	struct epic_fshdr fsinfo = {0};
+	if (epic_get_fsinfo(bootdrive, (struct epic_fshdr*)&fsinfo)!=0){
+		panic("invalid filesystem!\n");
+	}
+	if (fsinfo.signature!=EPICFS_SIGNATURE){
+		panic("invalid file system signature\n");
+	}
 	set_multithreading(0);
 	while (1){};
 	return;	

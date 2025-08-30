@@ -1,83 +1,75 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <dirent.h>
 #include <stdio.h>
-#include "../filesystem.h"
-#define align_up(val, align)((val+align-1) & ~(align-1))
+#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include "filesystem.h"
 int main(int argc, char** argv){
-	const char* filespath = "files";
-	DIR* dir = (DIR*)NULL;
-	struct dirent* dirent = (struct dirent*)NULL;
-	unsigned char* fsbuf = (unsigned char*)NULL;
-	size_t fs_size = 1024;
-	size_t fs_used = sizeof(struct filesystem_info);
-	struct filesystem_info* fs_info = (struct filesystem_info*)NULL;
-	FILE* fsout = (FILE*)NULL;
-	size_t byteswritten = 0;
-	size_t fs_used_aligned = 0;
-	dir = opendir(filespath);
+	if (argc<3)
+		return -1;
+	char* maindir = argv[1];
+	char* outputfs = argv[2];
+	char* strdrivesize = argv[3];
+	if (!maindir||!outputfs||!strdrivesize)
+		return -1;
+	size_t drivesize = strtoull(strdrivesize, NULL, 0);
+	printf("drive size: %zu\n", drivesize);
+	DIR* dir = opendir(maindir);
 	if (!dir){
-		printf("failed to open files directory (%s)\n", strerror(errno));
+		printf("failed to open dir (%s)\n", strerror(errno));
 		return -1;
 	}
-	fsbuf = (unsigned char*)malloc(fs_size);
+	struct dirent* dirent = (struct dirent*)0x0;
+	size_t fsused = sizeof(struct fs_hdr);
+	unsigned char* fsbuf = (unsigned char*)malloc(drivesize);
 	if (!fsbuf){
-		printf("failed to allocate memory for file system (%s)\n", strerror(errno));
-		closedir(dir);
-		return -1;	
+		printf("failed to allocate memory for filesystem (%s)\n", strerror(errno));
+		return -1;
 	}
-	fs_info = (struct filesystem_info*)fsbuf;
-	fs_info->signature = FS_SIGNATURE;
-	strcpy(fs_info->fsname, "the best fs");
+	struct fs_hdr* hdr = (struct fs_hdr*)fsbuf;
+	hdr->signature = FS_SIGNATURE;
 	while ((dirent=readdir(dir))){
 		if (dirent->d_type!=DT_REG)
 			continue;
-		char path[256] = {0};
-		FILE* file = (FILE*)NULL;
-		size_t filesize = 0;
-		size_t bytesread = 0;
-		unsigned char* filecontents = (unsigned char*)NULL;
-		snprintf(path, sizeof(path), "%s/%s", filespath, dirent->d_name);
-		file = fopen(path, "rb");
-		if (!file){
-			printf("failed to open file at %s (%s)\n", path, strerror(errno));
+		char fullpath[256] = {0};
+		snprintf(fullpath, sizeof(fullpath), "%s/%s", maindir, dirent->d_name);
+		printf("file name: %s\n", dirent->d_name);
+		FILE* newfile = fopen(fullpath, "rb");
+		if (!newfile){
+			printf("failed to open file at %s for reading (%s)\n", fullpath, strerror(errno));
 			continue;
 		}
-		fseek(file,0,SEEK_END);
-		filesize = ftell(file);
-		rewind(file);
-		filecontents = (unsigned char*)malloc(filesize);
-		if (!filecontents){
-			printf("failed to allocate memory for file contents for %s (%s)\n", path, strerror(errno));
-			fclose(file);
-			continue;
-		}
-		bytesread = fread((void*)filecontents, 1, filesize, file);
-		if (bytesread!=filesize)
-			printf("read %zu/%zu bytes of file at %s\n", bytesread, filesize, path);
-		fclose(file);
-		printf("adding file at %s to file system\n", path);
-		free(filecontents);
-	}	
+		fseek(newfile,0,SEEK_END);
+		uint64_t filesize = (uint64_t)ftell(newfile);
+		rewind(newfile);
+		fclose(newfile);
+	}
 	closedir(dir);
-	fsout = (FILE*)fopen("filesystem.bin", "wb");
-	if (!fsout){
-		printf("failed to open filesystem output (%s)\n", strerror(errno));
+	size_t reserved_bytes = 512*128;
+	unsigned char* outbuf = (unsigned char*)malloc(drivesize+reserved_bytes);
+	if (!outbuf){
+		printf("failed to allocate memory for output buffer (%s)\n", strerror(errno));
 		free(fsbuf);
 		return -1;
 	}
-	fs_used_aligned = align_up(fs_used, 512);
-	byteswritten = fwrite((void*)fsbuf, 1, fs_used_aligned, fsout);
-	if (byteswritten!=fs_used_aligned){
-		printf("only written %zu/%zu bytes of the file system\n", byteswritten, fs_used_aligned);
-		fclose(fsout);
-		free(fsbuf);
-		return -1;
-	}
-	printf("file system used: %zu\n", byteswritten);
-	fclose(fsout);
+	memcpy((void*)(outbuf+reserved_bytes), (const void*)fsbuf, fsused);
 	free(fsbuf);
+	FILE* outfile = fopen(outputfs, "rb");
+	if (!outfile){
+		printf("failed to open output file (%s)\n", strerror(errno));
+		free(outbuf);
+		return -1;
+	}	
+	fread((void*)outbuf,1,reserved_bytes, outfile);
+	fclose(outfile);
+	outfile = fopen(outputfs, "wb");
+	if (!outfile){
+		printf("failed to open output file (%s)\n", strerror(errno));
+		free(outbuf);
+		return -1;
+	}
+	fwrite((void*)outbuf, 1, drivesize+reserved_bytes, outfile);
+	fclose(outfile);
 	return 0;
 }

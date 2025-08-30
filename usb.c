@@ -167,8 +167,9 @@ int usb2_init(void){
 	printf("port count: %d\n", usb2_portcnt);
 	*usb2_status = 0xFFFFFFFF;
 	*usb2_usbcmd|=0x1;
+	*usb2_usbcmd|=0x5;
 	while (*usb2_status==0xFFFFFFFF){};
-	if ((*usb2_status)&(1<<2)){
+	if ((*usb2_status)&(1<<0x2)){
 		panic("usb2 controller transfer failed\n");
 		return -1;
 	}
@@ -176,7 +177,6 @@ int usb2_init(void){
 		panic("usb2 controller reported system error\n");
 		return -1;
 	}
-	*usb2_usbcmd |= (1<<5);
 	for (unsigned int i = 0;i<usb2_portcnt;i++){
 		uint32_t portval = usb2_portscn[i]&0xFF;
 		unsigned char portspeed = 0;
@@ -227,8 +227,8 @@ int usb2_init(void){
 		pnew_dev->desc_hdr.request = 0x06;
 		pnew_dev->desc_hdr.value = 0x0100;
 		pnew_dev->desc_hdr.index = 0x0;
-		pnew_dev->desc_hdr.len = sizeof(struct usb2_dev_desc);
-		pcontrol_td->buffer[0] = (uint32_t)&pnew_dev->desc_hdr;
+		pnew_dev->desc_hdr.len = sizeof(struct usb2_packet_header);
+		*pcontrol_td->buffer = (uint32_t)&pnew_dev->desc_hdr;
 		pcontrol_td->token = (1<<31)|(8<<16)|(0<<8);
 	}
 	sleep(50);

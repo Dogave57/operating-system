@@ -90,6 +90,15 @@ int drive_getinfo(unsigned int drive, uint16_t* info){
 	}
 	return 0;
 }
+int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
+	if (!pinfo)
+		return -1;
+	unsigned char data[512] = {0};
+	if (read_sectors(drive, 128, 1, (uint16_t*)data, 256)!=0)
+		return -1;
+	*pinfo = *(struct epic_fshdr*)data;
+	return 0;
+}
 struct highlow_64 drive_getsectors(unsigned int drive){
 	struct highlow_64 sectors = {0};
 	uint16_t drive_info[256] = {0};
