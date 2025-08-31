@@ -33,13 +33,9 @@ struct epic_clusterhdr{
 struct epic_file{
 	struct epic_clusterhdr clusterhdr;
 	enum fileType type;
-	char filename[128];
-	unsigned int filesize;
-	unsigned int parent;
-	unsigned int last_file; 
-	unsigned int next_file;
-	unsigned int first_file;
-	unsigned int file_data;
+	char filename[12];
+	unsigned int size;
+	unsigned int data;
 }__attribute__((packed));
 struct file{
 	enum fsType fstype;
@@ -57,6 +53,8 @@ struct file* openfile(unsigned int drive, const char* filename);
 int renamefile(struct file* pfile, const char* newname);
 int createfile(unsigned int drive, const char* filename);
 int deletefile(struct file* pfile);
+int readfile(struct file* pfile, unsigned char* buffer);
+unsigned int getfilesize(struct file* pfile);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

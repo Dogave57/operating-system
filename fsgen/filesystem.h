@@ -9,9 +9,8 @@ enum fsType{
 	FS_EPIC,
 };
 enum clusterType{
-	CLUSTER_INVALID,
-	CLUSTER_FILE,
 	CLUSTER_FILEDATA,
+	CLUSTER_FILE,
 };
 enum fileType{
 	FILE_INVALID,
@@ -31,13 +30,9 @@ struct epic_clusterhdr{
 struct epic_file{
 	struct epic_clusterhdr clusterhdr;
 	enum fileType type;
-	char filename[128];
-	unsigned int filesize;
-	unsigned int parent;
-	unsigned int last_file; 
-	unsigned int next_file;
-	unsigned int first_file;
-	unsigned int file_data;
+	char filename[12];
+	unsigned int size;
+	unsigned int data;
 }__attribute__((packed));
 struct file{
 	enum fsType fstype;

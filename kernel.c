@@ -159,25 +159,18 @@ void kentry(void){
 	if (fsinfo.signature!=EPICFS_SIGNATURE){
 		panic("invalid file system signature\n");
 	}
-	printf("bytes per cluster: %d\n", fsinfo.bytes_per_cluster);
-	printf("data off: %d\n", fsinfo.data_off);
-	printf("fat size: %d\n", fsinfo.fat_size);
 	struct file* file1 = openfile(bootdrive, "test.txt");
-	struct file* file2 = openfile(bootdrive, "test2.txt");
-	struct file* file3 = openfile(bootdrive, "aaaa.txt");
-	printf("file 1: %p\n", (void*)file1);
-	printf("file 2: %p\n", (void*)file2);
-	printf("file 3: %p\n", (void*)file3);
-	if (createfile(bootdrive, "aaaa.txt")!=0){
-		printf("failed to create file\n");
-	}
-	struct file* pfile = openfile(bootdrive, "aaaa.txt");
-	if (pfile)
-		deletefile(pfile);
-	createfile(bootdrive, "aaaa.txt");
+	unsigned int file1_size = getfilesize(file1);
+	if (!file1)
+		panic("file no exist\n");
+	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
+	if (!buffer)	
+		panic("failed to allocate memory for buffer\n");
+	if (readfile(file1, buffer)!=0)
+		panic("failed to read file\n");
+	printf("contents: %s\n", buffer);
+	kfree((void*)buffer);
 	closefile(file1);
-	closefile(file2);
-	closefile(file3);	
 	set_multithreading(0);
 	while (1){};
 	return;	
