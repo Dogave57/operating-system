@@ -39,6 +39,7 @@ int main(int argc, char** argv){
 	hdr->fat_size+=512-(hdr->fat_size%512);
 	hdr->data_off = 129+(hdr->fat_size/512);
 	data = (unsigned char*)(fsbuf+512+hdr->fat_size);
+	memset((void*)(fsbuf+512), 0, hdr->fat_size);
 	while ((dirent=readdir(dir))){
 		if (dirent->d_type!=DT_REG)
 			continue;
@@ -65,8 +66,7 @@ int main(int argc, char** argv){
 		fclose(newfile);
 	}
 	closedir(dir);
-	fat[fat_index] = EPICFS_EOC;
-	fat_index++;
+	fat[hdr->fat_size/512] = EPICFS_EOC;
 //	fsused = (fat_index*4)+512;
 	fsused = drivesize;
 	size_t reserved_bytes = 512*128;

@@ -164,12 +164,17 @@ void kentry(void){
 	printf("fat size: %d\n", fsinfo.fat_size);
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
-	struct file* file3 = openfile(bootdrive, "test3.txt");
+	struct file* file3 = openfile(bootdrive, "aaaa.txt");
 	printf("file 1: %p\n", (void*)file1);
 	printf("file 2: %p\n", (void*)file2);
 	printf("file 3: %p\n", (void*)file3);
-	deletefile(file1);
-	deletefile(file3);
+	if (createfile(bootdrive, "aaaa.txt")!=0){
+		printf("failed to create file\n");
+	}
+	struct file* pfile = openfile(bootdrive, "aaaa.txt");
+	if (pfile)
+		deletefile(pfile);
+	createfile(bootdrive, "aaaa.txt");
 	closefile(file1);
 	closefile(file2);
 	closefile(file3);	

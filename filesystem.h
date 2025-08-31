@@ -55,6 +55,7 @@ int drive_getinfo(unsigned int drive, uint16_t* info);
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo);
 struct file* openfile(unsigned int drive, const char* filename);
 int renamefile(struct file* pfile, const char* newname);
+int createfile(unsigned int drive, const char* filename);
 int deletefile(struct file* pfile);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);

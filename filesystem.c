@@ -25,7 +25,6 @@ int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_
                 while ((inb(0x1F7)&(1<<7))){};
                 if (inb(0x1F7)&0x1){
                         err = inb(0x1F1);
-                        printf("failed to read sector %d (%p)\n", sector+i,(void*)err);
                         return -1;
                 }
                 while (!(inb(0x1F7)&(1<<3))){};
@@ -62,7 +61,6 @@ int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16
 		if (!(inb(0x1F7)&0x01))
 			continue;
 		err = inb(0x1F1);
-		printf("failed to write sector %d to ata drive (0x%x)\n", sector+i, err);
 	}
 	return 0;
 }
@@ -169,6 +167,51 @@ int renamefile(struct file* pfile, const char* newname){
 	}
 	strcpy(pfile_data->filename, newname);
 	return write_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256);
+}
+int createfile(unsigned int drive, const char* filename){
+	if (!filename)
+		return -1;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive,&fshdr)!=0){
+		return -1;
+	}
+	unsigned int current_cluster = 0;
+	unsigned int current_sector = 0;
+	unsigned int last_sector = 0;
+	unsigned int cluster_metadata[128] = {0};
+	while (1){
+		current_sector = (FS_RESERVED_SECTORS+1)+((current_cluster*4)/512);
+		if (current_sector!=last_sector){
+			if (read_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata,256)!=0)
+				return -1;
+		}
+		last_sector = current_sector;
+		unsigned int cluster_index = current_cluster%512;
+		unsigned int* cluster_value = cluster_metadata+cluster_index;
+		if (*cluster_value==EPICFS_EOC){
+			printf("out of space\n");
+			return -1;
+		}
+	//	printf("cluster value: %d ", *cluster_value);
+		if (*cluster_value!=EPICFS_FC){
+			current_cluster = *cluster_value;
+			continue;
+		}
+		*cluster_value = 0x1;
+		unsigned int filedata_sector = fshdr.data_off+current_cluster;
+		unsigned char cluster_data[512] = {0};
+		if (read_sectors(drive, filedata_sector, 1, (uint16_t*)cluster_data, 256)!=0)
+			return -1;
+		struct epic_file* pfdata = (struct epic_file*)cluster_data;
+		pfdata->clusterhdr.type = CLUSTER_FILE;
+		pfdata->clusterhdr.cluster = current_cluster;
+		pfdata->type = FILE_REGULAR;
+		strcpy(pfdata->filename, filename);
+		if (write_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata, 256)!=0)
+			return -1;
+		return write_sectors(drive, filedata_sector, 1, (uint16_t*)cluster_data, 256);	
+	}
+	return -1;
 }
 int deletefile(struct file* pfile){
 	if (!pfile)
