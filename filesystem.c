@@ -233,10 +233,32 @@ int deletefile(struct file* pfile){
 	if (write_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data, 256)!=0)
 		return -1;
 	unsigned int file_md_cluster = pfile->file_cluster;
+	unsigned int file_md_sector = pfshdr->data_off+file_md_cluster;
 	unsigned char file_data[512] = {0};
-	if (read_sectors(pfile->drive, file_md_cluster, 1, (uint16_t*)file_data, 256)!=0)
+	if (read_sectors(pfile->drive, file_md_sector, 1, (uint16_t*)file_data, 256)!=0)
 		return -1;
 	struct epic_file* pepicfile = (struct epic_file*)file_data;
+	unsigned int current_cluster = pepicfile->data;
+	unsigned int current_sector = 0;
+	unsigned int last_sector = 0;
+	unsigned int current_data_sector = 0;
+	while (1){
+		if (current_data_sector>=1+((pepicfile->size-1)/512))
+			break;
+		current_sector = FS_RESERVED_SECTORS+1+((current_cluster*4)/512);
+		if (current_sector!=last_sector||current_cluster==pepicfile->data){
+			if (read_sectors(pfile->drive, current_sector, 1, (uint16_t*)sector_data,256)!=0)
+				return -1;
+		}
+		unsigned int cluster_index = current_cluster%512;
+		unsigned int next_cluster = sector_data[cluster_index];
+		sector_data[cluster_index] = EPICFS_FC;
+		printf("freeing cluster %d | ", current_cluster);
+		write_sectors(pfile->drive, current_sector, 1, (uint16_t*)sector_data,256);
+		current_cluster = next_cluster;
+		last_sector = current_sector;
+		current_data_sector++;
+	}
 	return 0;
 }
 int readfile(struct file* pfile, unsigned char* buffer){
