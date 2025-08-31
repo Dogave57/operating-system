@@ -165,8 +165,11 @@ void kentry(void){
 	struct file* file = openfile(bootdrive, "test.txt");
 	if (!file)
 		print("failed to open file!\n");
-	else
+	else{
 		printf("successfully opened file!\n");
+		renamefile(file,"aaaa.txt");
+		closefile(file);
+	}
 	set_multithreading(0);
 	while (1){};
 	return;	

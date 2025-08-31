@@ -42,6 +42,8 @@ struct epic_file{
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;
+	unsigned int len;
+	unsigned int drive;
 	unsigned int file_cluster;
 	unsigned char reserved[16];
 };

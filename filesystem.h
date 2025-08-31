@@ -36,7 +36,7 @@ struct epic_file{
 	char filename[128];
 	unsigned int filesize;
 	unsigned int parent;
-	unsigned int last_file;
+	unsigned int last_file; 
 	unsigned int next_file;
 	unsigned int first_file;
 	unsigned int file_data;
@@ -44,6 +44,8 @@ struct epic_file{
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;
+	unsigned int len;
+	unsigned int drive;
 	unsigned int file_cluster;
 	unsigned char reserved[16];
 };
@@ -52,6 +54,8 @@ int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16
 int drive_getinfo(unsigned int drive, uint16_t* info);
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo);
 struct file* openfile(unsigned int drive, const char* filename);
+int renamefile(struct file* pfile, const char* newname);
+int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);
 #endif

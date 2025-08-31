@@ -69,6 +69,17 @@ int memcmp(void* buf1, void* buf2, size_t size){
 	}
 	return 0;
 }
+int strcmp(char* str1, char* str2){
+	if (!str1||!str2)
+		return 1;
+	for (unsigned int i = 0;;i++){
+		if (str1[i]!=str2[i])
+			return 1;
+		if (!str1[i])
+			break;
+	}
+	return 0;
+}
 int memcpy(void* dest, const void* src, size_t size){
 	if (!dest||!src||size<1)
 		return -1;
@@ -81,6 +92,16 @@ int memcpy(void* dest, const void* src, size_t size){
 		} 
 		*((unsigned char*)dest+i)=*((unsigned char*)src+i);
 		i++;
+	}
+	return 0;
+}
+int strcpy(char* dest, const char* src){
+	if (!dest||!src)
+		return -1;
+	for (unsigned int i = 0;;i++){
+		dest[i] = src[i];
+		if (!src[i])
+			break;
 	}
 	return 0;
 }

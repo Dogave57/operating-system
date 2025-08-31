@@ -119,7 +119,7 @@ struct file* openfile(unsigned int drive, const char* filename){
 		unsigned int sector_index = current_cluster%512;
 		unsigned int next_cluster = cluster_metadata[sector_index];
 		if (next_cluster==EPICFS_EOC){
-			break;
+			return (struct file*)0x0;
 		}
 		if (next_cluster==EPICFS_FC){
 			current_cluster++;
@@ -138,14 +138,43 @@ struct file* openfile(unsigned int drive, const char* filename){
 			continue;
 		}
 		struct epic_file* pepic_file = (struct epic_file*)clusterhdr;
-		printf("file found with name: %s\n", pepic_file->filename);
-		current_cluster = next_cluster;
-	}
-	struct file* pfile = (struct file*)kmalloc(sizeof(struct file));
-	if (!pfile)
+		if (strcmp(pepic_file->filename, (char*)filename)!=0){
+			current_cluster = next_cluster;
+			continue;
+		}
+		struct file* pfile = (struct file*)kmalloc(sizeof(struct file)+sizeof(struct epic_fshdr));
+		if (!pfile)
+			return pfile;
+		*(struct epic_fshdr*)(pfile+1) = fshdr;
+		pfile->fstype = FS_EPIC;
+		pfile->filetype = FILE_REGULAR;
+		pfile->len = sizeof(struct file)+sizeof(struct epic_fshdr);
+		pfile->drive = drive;
+		pfile->file_cluster = current_cluster;
 		return pfile;
-
-	return pfile;
+	}
+	return (struct file*)0x0;
+}
+int renamefile(struct file* pfile, const char* newname){
+	if (!pfile)
+		return -1;
+	if (pfile->fstype!=FS_EPIC)
+		return -1;
+	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
+	unsigned char sector_data[512] = {0};
+	struct epic_file* pfile_data = (struct epic_file*)(sector_data);
+	unsigned int filedata_sector = pfshdr->data_off+pfile->file_cluster;
+	if (read_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256)!=0){
+		return -1;
+	}
+	strcpy(pfile_data->filename, newname);
+	return write_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256);
+}
+int closefile(struct file* pfile){
+	if (!pfile)
+		return -1;
+	kfree((void*)pfile);
+	return 0;
 }
 struct highlow_64 drive_getsectors(unsigned int drive){
 	struct highlow_64 sectors = {0};
