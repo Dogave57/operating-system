@@ -159,31 +159,14 @@ void kentry(void){
 	if (fsinfo.signature!=EPICFS_SIGNATURE){
 		panic("invalid file system signature\n");
 	}
-	//printf("bytes per cluster: %d\n", fsinfo.bytes_per_cluster);
-	//printf("data off: %d\n", fsinfo.data_off);
-	unsigned int cluster = 0x0;
-	unsigned int cluster_sector = 0;
-	unsigned int cluster_index = 0;
-	unsigned int sector_data[128] = {0};
-	while (1){
-		unsigned int last_sector = cluster_sector;
-		cluster_sector = 129+(cluster/512);
-		cluster_index = cluster%512;
-		if (last_sector!=cluster_sector){
-			read_sectors(bootdrive, cluster_sector, 1, (uint16_t*)sector_data, 256);
-		}
-		unsigned int cluster_data = sector_data[cluster_index];
-		if (cluster_data==EPICFS_EOC){
-			printf("end of clusters at cluster sector %d\n", cluster_sector);
-			break;
-		}
-		if (cluster_data==EPICFS_FC){
-			cluster++;
-			continue;
-		}
-		printf("next cluster: %d\n", cluster_data);
-		cluster=cluster_data;
-	}
+	printf("bytes per cluster: %d\n", fsinfo.bytes_per_cluster);
+	printf("data off: %d\n", fsinfo.data_off);
+	printf("fat size: %d\n", fsinfo.fat_size);
+	struct file* file = openfile(bootdrive, "test.txt");
+	if (!file)
+		print("failed to open file!\n");
+	else
+		printf("successfully opened file!\n");
 	set_multithreading(0);
 	while (1){};
 	return;	

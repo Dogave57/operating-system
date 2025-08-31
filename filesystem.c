@@ -99,6 +99,54 @@ int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 	*pinfo = *(struct epic_fshdr*)data;
 	return 0;
 }
+struct file* openfile(unsigned int drive, const char* filename){
+	if (!filename)
+		return (struct file*)0x0;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive, &fshdr))
+		return (struct file*)0x0;
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return (struct file*)0x0;
+	unsigned int current_cluster = 0;
+	unsigned int current_sector = 0;
+	unsigned int last_sector = 0;
+	unsigned int cluster_metadata[128] = {0};
+	while (1){
+		current_sector = (FS_RESERVED_SECTORS+1)+((current_cluster*4)/512);
+		if (last_sector!=current_sector)
+			read_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata, 256);
+		last_sector = current_sector;
+		unsigned int sector_index = current_cluster%512;
+		unsigned int next_cluster = cluster_metadata[sector_index];
+		if (next_cluster==EPICFS_EOC){
+			break;
+		}
+		if (next_cluster==EPICFS_FC){
+			current_cluster++;
+			continue;
+		}
+		unsigned int cluster_data_sector = fshdr.data_off+((current_cluster));
+		unsigned char cluster_data[512] = {0};
+		if (read_sectors(drive, cluster_data_sector, 1, (uint16_t*)cluster_data, 256)!=0){
+			printf("failed to read drive sectors for data sector\n");
+			current_cluster = next_cluster;
+			continue;	
+		}
+		struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(cluster_data);
+		if (clusterhdr->type!=CLUSTER_FILE){
+			current_cluster = next_cluster;
+			continue;
+		}
+		struct epic_file* pepic_file = (struct epic_file*)clusterhdr;
+		printf("file found with name: %s\n", pepic_file->filename);
+		current_cluster = next_cluster;
+	}
+	struct file* pfile = (struct file*)kmalloc(sizeof(struct file));
+	if (!pfile)
+		return pfile;
+
+	return pfile;
+}
 struct highlow_64 drive_getsectors(unsigned int drive){
 	struct highlow_64 sectors = {0};
 	uint16_t drive_info[256] = {0};
