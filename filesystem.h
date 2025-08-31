@@ -4,7 +4,7 @@
 #include "kernel.h"
 #define FS_RESERVED_SECTORS 128
 #define EPICFS_SIGNATURE (unsigned int)0x43495045 //EPIC
-#define EPICFS_EOC (unsigned int)0xFFFE
+#define EPICFS_EOC (unsigned int)0xFFFFFFFF
 #define EPICFS_FC (unsigned int)0x0
 enum fsType{
 	FS_NONE,
@@ -55,6 +55,7 @@ int drive_getinfo(unsigned int drive, uint16_t* info);
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo);
 struct file* openfile(unsigned int drive, const char* filename);
 int renamefile(struct file* pfile, const char* newname);
+int deletefile(struct file* pfile);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

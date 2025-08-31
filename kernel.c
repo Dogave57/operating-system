@@ -162,14 +162,17 @@ void kentry(void){
 	printf("bytes per cluster: %d\n", fsinfo.bytes_per_cluster);
 	printf("data off: %d\n", fsinfo.data_off);
 	printf("fat size: %d\n", fsinfo.fat_size);
-	struct file* file = openfile(bootdrive, "test.txt");
-	if (!file)
-		print("failed to open file!\n");
-	else{
-		printf("successfully opened file!\n");
-		renamefile(file,"aaaa.txt");
-		closefile(file);
-	}
+	struct file* file1 = openfile(bootdrive, "test.txt");
+	struct file* file2 = openfile(bootdrive, "test2.txt");
+	struct file* file3 = openfile(bootdrive, "test3.txt");
+	printf("file 1: %p\n", (void*)file1);
+	printf("file 2: %p\n", (void*)file2);
+	printf("file 3: %p\n", (void*)file3);
+	deletefile(file1);
+	deletefile(file3);
+	closefile(file1);
+	closefile(file2);
+	closefile(file3);	
 	set_multithreading(0);
 	while (1){};
 	return;	

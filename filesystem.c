@@ -170,6 +170,22 @@ int renamefile(struct file* pfile, const char* newname){
 	strcpy(pfile_data->filename, newname);
 	return write_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256);
 }
+int deletefile(struct file* pfile){
+	if (!pfile)
+		return -1;
+	if (pfile->fstype!=FS_EPIC)
+		return -1;
+	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
+	unsigned int sector_data[128] = {0};
+	unsigned int cluster_sector = (FS_RESERVED_SECTORS+1)+((pfile->file_cluster*4)/512);
+	unsigned int cluster_index = pfile->file_cluster%512;
+	if (read_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data,256)!=0){
+		printf("failed to read sectors\n");
+		return -1;
+	}
+	sector_data[cluster_index]=EPICFS_FC;
+	return write_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data,256);
+}
 int closefile(struct file* pfile){
 	if (!pfile)
 		return -1;

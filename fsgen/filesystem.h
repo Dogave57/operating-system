@@ -2,7 +2,7 @@
 #define _FILESYSTEM
 #define FS_RESERVED_SECTORS 128
 #define EPICFS_SIGNATURE (unsigned int)0x43495045 //EPIC
-#define EPICFS_EOC (unsigned int)0xFFFE
+#define EPICFS_EOC (unsigned int)0xFFFFFFFF
 #define EPICFS_FC (unsigned int)0x0
 enum fsType{
 	FS_NONE,
