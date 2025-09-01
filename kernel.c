@@ -165,8 +165,9 @@ void kentry(void){
 	unsigned int file1_size = getfilesize(file1);
 	unsigned int file2_size = getfilesize(file2);
 	unsigned int file3_size = getfilesize(file3);
-	if (!file1||!file2||!file3)
+	if (!file1||!file2||!file3){
 		panic("file no exist\n");
+	}
 	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
 	if (!buffer){	
 		panic("failed to allocate memory for file buffer\n");
@@ -190,8 +191,6 @@ void kentry(void){
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
-	renamefile(file1, "test2.txt");
-	renamefile(file2, "test.txt");
 	closefile(file1);
 	closefile(file2);
 	closefile(file3);

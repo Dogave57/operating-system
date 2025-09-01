@@ -137,7 +137,7 @@ struct file* openfile(unsigned int drive, const char* filename){
 		}
 		for (unsigned int i = 0;i<sizeof(cluster_data)/sizeof(struct epic_file);i++){
 			struct epic_file* pepic_file = (struct epic_file*)(cluster_data+sizeof(struct epic_clusterhdr)+(sizeof(struct epic_file)*i));
-			if (pepic_file->type!=FILE_REGULAR)
+			if (pepic_file->type!=FILE_REGULAR||!pepic_file->inuse)
 				continue;
 			if (strcmp(pepic_file->filename, (char*)filename)!=0)
 				continue;
@@ -177,48 +177,59 @@ int renamefile(struct file* pfile, const char* newname){
 int createfile(unsigned int drive, const char* filename){
 	if (!filename)
 		return -1;
-	struct epic_fshdr fshdr = {0};
-	if (epic_get_fsinfo(drive,&fshdr)!=0){
+	unsigned char fsinfo_sector_data[512] = {0};
+	struct epic_fshdr* pfshdr = (struct epic_fshdr*)fsinfo_sector_data;
+	if (epic_get_fsinfo(drive,(struct epic_fshdr*)fsinfo_sector_data)!=0){
 		return -1;
 	}
-	if (fshdr.signature!=EPICFS_SIGNATURE)
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
 		return -1;
+	unsigned int filemd_sector = pfshdr->data_off+(pfshdr->last_filemd_cluster*8);
+	unsigned char sector_data[4096] = {0};
+	if (read_sectors(drive, filemd_sector, 1, (uint16_t*)sector_data, 2048)!=0)
+		return -1;
+	struct epic_file* fentries = (struct epic_file*)(sector_data+sizeof(struct epic_clusterhdr));
+	for (unsigned int i = 0;i<sizeof(sector_data)/sizeof(struct epic_file);i++){
+		struct epic_file* pfile = fentries+i;
+		if (pfile->inuse!=0)
+			continue;
+		strcpy(pfile->filename, filename);
+		pfile->inuse = 1;
+		pfile->type = FILE_REGULAR;
+		return write_sectors(drive, filemd_sector, 1, (uint16_t*)sector_data, 2048);
+	}
 	unsigned int current_cluster = 0;
-	unsigned int current_sector = 0;
-	unsigned int last_sector = 0;
-	unsigned int cluster_metadata[128] = {0};
+	unsigned int last_cluster = 0;
+	unsigned int cluster_data[1024] = {0};
 	while (1){
-		current_sector = (FS_RESERVED_SECTORS+1)+((current_cluster*4)/512);
-		if (current_sector!=last_sector){
-			if (read_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata,256)!=0)
+		unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((current_cluster*4)/512);
+		if (current_cluster!=last_cluster||!current_cluster){
+			if (read_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 2048)!=0)
 				return -1;
 		}
-		last_sector = current_sector;
 		unsigned int cluster_index = current_cluster%512;
-		unsigned int* cluster_value = cluster_metadata+cluster_index;
-		if (*cluster_value==EPICFS_EOC){
-			printf("out of space\n");
+		if (cluster_data[cluster_index]==EPICFS_EOC)
 			return -1;
-		}
-	//	printf("cluster value: %d ", *cluster_value);
-		if (*cluster_value!=EPICFS_FC){
-			current_cluster = *cluster_value;
+		if (cluster_data[cluster_index]!=EPICFS_FC){
+			current_cluster = cluster_data[cluster_index];
 			continue;
-		}
-		*cluster_value = 0x1;
-		unsigned int filedata_sector = fshdr.data_off+current_cluster;
-		unsigned char cluster_data[512] = {0};
-		if (read_sectors(drive, filedata_sector, 1, (uint16_t*)cluster_data, 256)!=0)
+		}	
+		cluster_data[cluster_index] = 0x1;
+		pfshdr->last_filemd_cluster = current_cluster;
+		filemd_sector = pfshdr->data_off+(current_cluster*8);
+		if (read_sectors(drive, filemd_sector, 1, (uint16_t*)sector_data, 2048)!=0)
 			return -1;
-		struct epic_file* pfdata = (struct epic_file*)cluster_data;
-		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)cluster_data;
-		pclusterhdr->type = CLUSTER_FILE;
-		pclusterhdr->cluster = current_cluster;
-		pfdata->type = FILE_REGULAR;
-		strcpy(pfdata->filename, filename);
-		if (write_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata, 256)!=0)
+		struct epic_file* newfile = (struct epic_file*)sector_data;
+		strcpy(newfile->filename, filename);
+		newfile->inuse = 1;
+		newfile->type = FILE_REGULAR;
+		if (write_sectors(drive, filemd_sector, 1, (uint16_t*)sector_data, 2048)!=0)
 			return -1;
-		return write_sectors(drive, filedata_sector, 1, (uint16_t*)cluster_data, 256);	
+		if (write_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 2048)!=0)
+			return -1;
+		if (write_sectors(drive, FS_RESERVED_SECTORS, 1, (uint16_t*)fsinfo_sector_data, 2048)!=0)
+			return -1;
+		return 0;
 	}
 	return -1;
 }

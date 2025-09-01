@@ -37,11 +37,13 @@ void free_cluster(unsigned int* cluster){
 int createfile(const char* filename, struct epic_file** pfiledata){
 	if (!filename)
 		return -1;
-	if (!current_filecluster||next_free_file>=4096/sizeof(struct epic_file)){
+	if (!next_free_file||next_free_file>=4096/sizeof(struct epic_file)){
+		printf("allocating new file data cluster\n");
 		current_filecluster = allocate_cluster();
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)(data+(4096*current_filecluster));
 		pclusterhdr->type = CLUSTER_FILE;
 		pclusterhdr->cluster = current_filecluster;
+		hdr->last_filemd_cluster = current_filecluster;
 	}
 	unsigned int file_metadata_offset = (current_filecluster*4096)+sizeof(struct epic_clusterhdr)+(next_free_file*sizeof(struct epic_file));
 	struct epic_file* pfile_metadata = (struct epic_file*)(data+file_metadata_offset);
