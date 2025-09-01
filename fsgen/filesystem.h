@@ -22,24 +22,28 @@ struct epic_fshdr{
 	unsigned int bytes_per_cluster;
 	unsigned int fat_size;
 	unsigned int data_off;
+	unsigned int last_filemd_cluster;
 }__attribute__((packed));
 struct epic_clusterhdr{
 	enum clusterType type;
 	unsigned int cluster;
 }__attribute__((packed));
 struct epic_file{
-	struct epic_clusterhdr clusterhdr;
 	enum fileType type;
-	char filename[12];
+	char filename[32];
 	unsigned int size;
 	unsigned int data;
-}__attribute__((packed));
+	unsigned int file_cluster;
+	unsigned int file_offset;
+	unsigned int inuse;
+}__attribute__((aligned(64)));
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;
 	unsigned int len;
 	unsigned int drive;
 	unsigned int file_cluster;
+	unsigned int file_offset;
 	unsigned char reserved[16];
 };
 #endif

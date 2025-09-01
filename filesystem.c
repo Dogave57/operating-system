@@ -123,37 +123,37 @@ struct file* openfile(unsigned int drive, const char* filename){
 			current_cluster++;
 			continue;
 		}
-		unsigned int cluster_data_sector = fshdr.data_off+((current_cluster));
-		unsigned char cluster_data[512] = {0};
-		if (read_sectors(drive, cluster_data_sector, 1, (uint16_t*)cluster_data, 256)!=0){
+		unsigned int cluster_data_sector = fshdr.data_off+((current_cluster*8));
+		unsigned char cluster_data[4096] = {0};
+		if (read_sectors(drive, cluster_data_sector, 1, (uint16_t*)cluster_data, 2048)!=0){
 			printf("failed to read drive sectors for data sector\n");
 			current_cluster = next_cluster;
 			continue;	
 		}
-		struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(cluster_data);	
+		struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)cluster_data;
 		if (clusterhdr->type!=CLUSTER_FILE){
 			current_cluster = next_cluster;
 			continue;
 		}
-		struct epic_file* pepic_file = (struct epic_file*)clusterhdr;
-		if (pepic_file->type!=FILE_REGULAR){
-			current_cluster = next_cluster;
-			continue;
-		}
-		if (strcmp(pepic_file->filename, (char*)filename)!=0){
-			current_cluster = next_cluster;
-			continue;
-		}
-		struct file* pfile = (struct file*)kmalloc(sizeof(struct file)+sizeof(struct epic_fshdr));
-		if (!pfile)
+		for (unsigned int i = 0;i<sizeof(cluster_data)/sizeof(struct epic_file);i++){
+			struct epic_file* pepic_file = (struct epic_file*)(cluster_data+sizeof(struct epic_clusterhdr)+(sizeof(struct epic_file)*i));
+			if (pepic_file->type!=FILE_REGULAR)
+				continue;
+			if (strcmp(pepic_file->filename, (char*)filename)!=0)
+				continue;
+			struct file* pfile = (struct file*)kmalloc(sizeof(struct file)+sizeof(struct epic_fshdr));
+			if (!pfile)
+				return pfile;
+			*(struct epic_fshdr*)(pfile+1) = fshdr;
+			pfile->fstype = FS_EPIC;
+			pfile->filetype = FILE_REGULAR;
+			pfile->len = sizeof(struct file)+sizeof(struct epic_fshdr);
+			pfile->drive = drive;
+			pfile->file_cluster = current_cluster;
+			pfile->file_offset = i*sizeof(struct epic_file);
 			return pfile;
-		*(struct epic_fshdr*)(pfile+1) = fshdr;
-		pfile->fstype = FS_EPIC;
-		pfile->filetype = FILE_REGULAR;
-		pfile->len = sizeof(struct file)+sizeof(struct epic_fshdr);
-		pfile->drive = drive;
-		pfile->file_cluster = current_cluster;
-		return pfile;
+		}
+		current_cluster = next_cluster;
 	}
 	return (struct file*)0x0;
 }
@@ -163,14 +163,16 @@ int renamefile(struct file* pfile, const char* newname){
 	if (pfile->fstype!=FS_EPIC)
 		return -1;
 	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
-	unsigned char sector_data[512] = {0};
-	struct epic_file* pfile_data = (struct epic_file*)(sector_data);
-	unsigned int filedata_sector = pfshdr->data_off+pfile->file_cluster;
-	if (read_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256)!=0){
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned char sector_data[4096] = {0};
+	struct epic_file* pfile_data = (struct epic_file*)(sector_data+pfile->file_offset+sizeof(struct epic_clusterhdr));
+	unsigned int filedata_sector = pfshdr->data_off+(pfile->file_cluster*8);
+	if (read_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 2048)!=0){
 		return -1;
 	}
 	strcpy(pfile_data->filename, newname);
-	return write_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 256);
+	return write_sectors(pfile->drive, filedata_sector, 1, (uint16_t*)sector_data, 2048);
 }
 int createfile(unsigned int drive, const char* filename){
 	if (!filename)
@@ -179,6 +181,8 @@ int createfile(unsigned int drive, const char* filename){
 	if (epic_get_fsinfo(drive,&fshdr)!=0){
 		return -1;
 	}
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return -1;
 	unsigned int current_cluster = 0;
 	unsigned int current_sector = 0;
 	unsigned int last_sector = 0;
@@ -207,8 +211,9 @@ int createfile(unsigned int drive, const char* filename){
 		if (read_sectors(drive, filedata_sector, 1, (uint16_t*)cluster_data, 256)!=0)
 			return -1;
 		struct epic_file* pfdata = (struct epic_file*)cluster_data;
-		pfdata->clusterhdr.type = CLUSTER_FILE;
-		pfdata->clusterhdr.cluster = current_cluster;
+		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)cluster_data;
+		pclusterhdr->type = CLUSTER_FILE;
+		pclusterhdr->cluster = current_cluster;
 		pfdata->type = FILE_REGULAR;
 		strcpy(pfdata->filename, filename);
 		if (write_sectors(drive, current_sector, 1, (uint16_t*)cluster_metadata, 256)!=0)
@@ -223,6 +228,8 @@ int deletefile(struct file* pfile){
 	if (pfile->fstype!=FS_EPIC)
 		return -1;
 	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
+		return -1;
 	unsigned int sector_data[128] = {0};
 	unsigned int cluster_sector = (FS_RESERVED_SECTORS+1)+((pfile->file_cluster*4)/512);
 	unsigned int cluster_index = pfile->file_cluster%512;
@@ -233,11 +240,11 @@ int deletefile(struct file* pfile){
 	if (write_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data, 256)!=0)
 		return -1;
 	unsigned int file_md_cluster = pfile->file_cluster;
-	unsigned int file_md_sector = pfshdr->data_off+file_md_cluster;
+	unsigned int file_md_sector = pfshdr->data_off+(file_md_cluster*8);
 	unsigned char file_data[512] = {0};
 	if (read_sectors(pfile->drive, file_md_sector, 1, (uint16_t*)file_data, 256)!=0)
 		return -1;
-	struct epic_file* pepicfile = (struct epic_file*)file_data;
+	struct epic_file* pepicfile = (struct epic_file*)(file_data+sizeof(struct epic_clusterhdr)+pfile->file_offset);
 	unsigned int current_cluster = pepicfile->data;
 	unsigned int current_sector = 0;
 	unsigned int last_sector = 0;
@@ -253,8 +260,7 @@ int deletefile(struct file* pfile){
 		unsigned int cluster_index = current_cluster%512;
 		unsigned int next_cluster = sector_data[cluster_index];
 		sector_data[cluster_index] = EPICFS_FC;
-		printf("freeing cluster %d | ", current_cluster);
-		write_sectors(pfile->drive, current_sector, 1, (uint16_t*)sector_data,256);
+		write_sectors(pfile->drive, current_sector, 1, (uint16_t*)sector_data, 256);
 		current_cluster = next_cluster;
 		last_sector = current_sector;
 		current_data_sector++;
@@ -267,12 +273,14 @@ int readfile(struct file* pfile, unsigned char* buffer){
 	if (pfile->fstype!=FS_EPIC)
 		return -1;
 	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
-	unsigned int file_md_sector = pfshdr->data_off+pfile->file_cluster;
-	unsigned char sector_data[512] = {0};
-	if (read_sectors(pfile->drive, file_md_sector, 1, (uint16_t*)sector_data, 256)!=0)
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
 		return -1;
-	struct epic_file* pfdata = (struct epic_file*)sector_data;
-	unsigned int data_clustercnt = 1+((pfdata->size-1)/512);
+	unsigned int file_md_sector = pfshdr->data_off+(pfile->file_cluster*8);
+	unsigned char sector_data[4096] = {0};
+	if (read_sectors(pfile->drive, file_md_sector, 1, (uint16_t*)sector_data, 2048)!=0)
+		return -1;
+	struct epic_file* pfdata = (struct epic_file*)(sector_data+sizeof(struct epic_clusterhdr)+pfile->file_offset);
+	unsigned int data_clustercnt = 1+((pfdata->size-1)/4096);
 	unsigned int cluster_metadata[128] = {0};
 	unsigned int current_cluster = pfdata->data;
 	unsigned int last_cluster = 0;
@@ -283,7 +291,7 @@ int readfile(struct file* pfile, unsigned char* buffer){
 				return -1;
 		}
 		unsigned int cluster_index = current_cluster%512;
-		if (read_sectors(pfile->drive, pfshdr->data_off+(current_cluster), 1, (uint16_t*)(buffer+(512*i)), 256)!=0){
+		if (read_sectors(pfile->drive, pfshdr->data_off+(current_cluster*8), 1, (uint16_t*)(buffer+(4096*i)), 2048)!=0){
 			return -1;
 		}
 		unsigned int next_cluster = cluster_metadata[cluster_index];
@@ -291,20 +299,33 @@ int readfile(struct file* pfile, unsigned char* buffer){
 	}
 	return 0;
 }
-unsigned int getfilesize(struct file* pfile){
-	if (!pfile)
-		return 0;
-	if (pfile->fstype!=FS_EPIC)
-		return 0;
+int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
+	if (!pfile||!buffer||!size)
+		return -1;
 	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
-	unsigned char sector_data[512] = {0};
-	unsigned int cluster_sector = (pfshdr->data_off+(pfile->file_cluster));
-	if (read_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data, 256)!=0){
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
+		return -1;
+	return 0;
+}
+unsigned int getfilesize(struct file* pfile){
+	if (!pfile){
+		printf("invalid file\n");
+		return 0;
+	}
+	if (pfile->fstype!=FS_EPIC){
+		printf("invalid file system type\n");
+		return 0;
+	}
+	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
+	if (pfshdr->signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned char sector_data[4096] = {0};
+	unsigned int cluster_sector = (pfshdr->data_off+(pfile->file_cluster*8));
+	if (read_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)sector_data, 2048)!=0){
 		printf("failed to get file info\n");
 		return 0;
 	}
-	struct epic_file* pfile_md = (struct epic_file*)sector_data;
-	printf("file data start: %d\n", pfile_md->data);
+	struct epic_file* pfile_md = (struct epic_file*)(sector_data+pfile->file_offset+sizeof(struct epic_clusterhdr));
 	return pfile_md->size;
 }
 int closefile(struct file* pfile){

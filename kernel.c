@@ -160,17 +160,41 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	struct file* file1 = openfile(bootdrive, "test.txt");
+	struct file* file2 = openfile(bootdrive, "test2.txt");
+	struct file* file3 = openfile(bootdrive, "test3.txt");
 	unsigned int file1_size = getfilesize(file1);
-	if (!file1)
+	unsigned int file2_size = getfilesize(file2);
+	unsigned int file3_size = getfilesize(file3);
+	if (!file1||!file2||!file3)
 		panic("file no exist\n");
 	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
-	if (!buffer)	
-		panic("failed to allocate memory for buffer\n");
+	if (!buffer){	
+		panic("failed to allocate memory for file buffer\n");
+	}
+	printf("size: %d\n", file1_size);
 	if (readfile(file1, buffer)!=0)
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
+	buffer = (unsigned char*)kmalloc(file2_size);
+	if (!buffer)
+		panic("failed to allocate memory for buffer\n");
+	if (readfile(file2, buffer)!=0)
+		panic("failed to read file\n");
+	printf("contents: %s\n", buffer);
+	kfree((void*)buffer);
+	buffer = (unsigned char*)kmalloc(file3_size);
+	if (!buffer)
+		panic("failed to allocate memory for buffer\n");
+	if (readfile(file3, buffer)!=0)
+		panic("failed to read file\n");
+	printf("contents: %s\n", buffer);
+	kfree((void*)buffer);
+	renamefile(file1, "test2.txt");
+	renamefile(file2, "test.txt");
 	closefile(file1);
+	closefile(file2);
+	closefile(file3);
 	set_multithreading(0);
 	while (1){};
 	return;	
