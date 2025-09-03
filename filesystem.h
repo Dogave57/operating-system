@@ -35,6 +35,7 @@ struct epic_file{
 	char filename[32];
 	unsigned int size;
 	unsigned int data;
+	unsigned int last_data_cluster;
 	unsigned int file_cluster;
 	unsigned int file_offset;
 	unsigned int inuse;
@@ -48,11 +49,16 @@ struct file{
 	unsigned int file_offset;
 	unsigned char reserved[16];
 };
-
 int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPersector);
 int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPersector);
 int drive_getinfo(unsigned int drive, uint16_t* info);
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo);
+int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster);
+int epic_free_cluster(unsigned int drive, unsigned int cluster);
+int epic_writecluster(unsigned int drive, unsigned int cluster, unsigned int data);
+int epic_readcluster(unsigned int drive, unsigned int cluster, unsigned int* pdata);
+int epic_write_clusterdata(unsigned int drive, unsigned int cluster, unsigned char* pdata);
+int epic_read_clusterdata(unsigned int drive, unsigned int cluser, unsigned char* pdata);
 struct file* openfile(unsigned int drive, const char* filename);
 int renamefile(struct file* pfile, const char* newname);
 int createfile(unsigned int drive, const char* filename);

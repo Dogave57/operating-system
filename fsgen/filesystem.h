@@ -33,6 +33,7 @@ struct epic_file{
 	char filename[32];
 	unsigned int size;
 	unsigned int data;
+	unsigned int last_data_cluster;
 	unsigned int file_cluster;
 	unsigned int file_offset;
 	unsigned int inuse;

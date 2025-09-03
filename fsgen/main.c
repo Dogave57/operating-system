@@ -51,6 +51,7 @@ int createfile(const char* filename, struct epic_file** pfiledata){
 	strcpy(pfile_metadata->filename, filename);
 	pfile_metadata->size = 0;
 	pfile_metadata->data = 0;
+	pfile_metadata->last_data_cluster = 0;
 	pfile_metadata->file_cluster = current_filecluster;
 	pfile_metadata->file_offset = next_free_file;
 	pfile_metadata->inuse = 1;
@@ -100,6 +101,7 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 		}
 		unsigned char* src_chunk = srcbuf+(512*i);
 		memcpy((void*)(data+(4096*new_cluster)), (const void*)src_chunk, 4096);
+		pepic_file->last_data_cluster = new_cluster;
 		last_cluster = new_cluster;
 	}
 	free(srcbuf);
