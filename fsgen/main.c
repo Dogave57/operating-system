@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include "filesystem.h"
 struct dirent* dirent = (struct dirent*)0x0;
-size_t fsused = 512;
+size_t fsused = 4096;
 unsigned char* fsbuf = (unsigned char*)0x0;
 unsigned int* fat = (unsigned int*)0x0;
 unsigned char* data = (unsigned char*)0x0;
@@ -20,7 +20,7 @@ int createfile(const char* filename, struct epic_file** pfiledata);
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src);
 unsigned int allocate_cluster(void){
 	for (unsigned int i = 0;fat[i]!=EPICFS_EOC;i++){
-	if (fat[i]!=EPICFS_FC)
+		if (fat[i]!=EPICFS_FC)
 			continue;
 		fat[i]=i+1;
 		return i;
@@ -99,7 +99,7 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 			fat[last_cluster] = new_cluster;
 			printf("cluster %d now points to cluster %d\n", last_cluster, new_cluster);
 		}
-		unsigned char* src_chunk = srcbuf+(512*i);
+		unsigned char* src_chunk = srcbuf+(4096*i);
 		memcpy((void*)(data+(4096*new_cluster)), (const void*)src_chunk, 4096);
 		pepic_file->last_data_cluster = new_cluster;
 		last_cluster = new_cluster;
@@ -125,19 +125,19 @@ int main(int argc, char** argv){
 		return -1;
 	}
 	dirent = (struct dirent*)0x0;
-	fsused = 512;
+	fsused = 4096;
 	fsbuf = (unsigned char*)malloc(drivesize);
 	if (!fsbuf){
 		printf("failed to allocate memory for filesystem (%s)\n", strerror(errno));
 		return -1;
 	}
-	fat = (unsigned int*)(fsbuf+512);
+	fat = (unsigned int*)(fsbuf+4096);
 	data = (unsigned char*)0x0;
 	fat_index = 0;
 	hdr = (struct epic_fshdr*)fsbuf;
 	hdr->signature = EPICFS_SIGNATURE;
-	hdr->bytes_per_cluster = 512;
-	hdr->fat_size = (drivesize/512)*4;
+	hdr->bytes_per_cluster = 4096;
+	hdr->fat_size = (drivesize/4096)*4;
 	hdr->fat_size+=512-(hdr->fat_size%512);
 	hdr->data_off = 129+(hdr->fat_size/512);
 	data = (unsigned char*)(fsbuf+512+hdr->fat_size);
@@ -160,7 +160,7 @@ int main(int argc, char** argv){
 	}
 	closedir(dir);
 	fat[hdr->fat_size/512] = EPICFS_EOC;
-//	fsused = (fat_index*4)+512;
+//	fsused = (fat_index*4)+4096;
 	fsused = drivesize;
 	size_t reserved_bytes = 512*128;
 	unsigned char* outbuf = (unsigned char*)malloc(drivesize+reserved_bytes);

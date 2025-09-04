@@ -192,7 +192,7 @@ void kentry(void){
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
 	unsigned char* newbuf = "diddy party\n";
-	if (writefile(file1, newbuf, strlen(newbuf)+1)!=0){
+	if (writefile(file2, newbuf, strlen(newbuf)+1)!=0){
 		printf("failed to write file contents\n");
 		__asm__ volatile("hlt");
 		while (1){};
