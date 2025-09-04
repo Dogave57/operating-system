@@ -367,7 +367,9 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 	unsigned int last_cluster = 0;
 	unsigned int last_cluster_sector = 0;
 	unsigned int cluster_data[128] = {0};
-	unsigned int clusters_tofree = (file_clusters-clusters_needed);
+	unsigned int clusters_tofree = 0;
+	if (file_clusters>clusters_needed)
+		clusters_tofree = file_clusters-clusters_needed;
 	current_cluster = pfilemd->data;
 	unsigned int clusters_toalloc = 0;
 	if (file_clusters<clusters_needed)
@@ -396,6 +398,7 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (epic_freecluster(pfile->drive, current_cluster)!=0)
 			return -1;
 		clusters_found++;
+		i++;
 		current_cluster = next_cluster;
 	}
 	current_cluster = pfilemd->data;
