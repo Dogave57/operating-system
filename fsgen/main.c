@@ -9,13 +9,14 @@ struct dirent* dirent = (struct dirent*)0x0;
 size_t fsused = 4096;
 unsigned char* fsbuf = (unsigned char*)0x0;
 unsigned int* fat = (unsigned int*)0x0;
+unsigned char* freelist = (unsigned char*)0x0;
 unsigned char* data = (unsigned char*)0x0;
 unsigned int fat_index = 0;
 struct epic_fshdr* hdr = (struct epic_fshdr*)0x0;
 unsigned int current_filecluster = 0;
 unsigned int next_free_file = 0;
 unsigned int allocate_cluster(void);
-void free_cluster(unsigned int* cluster);
+void free_cluster(unsigned int cluster);
 int createfile(const char* filename, struct epic_file** pfiledata);
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src);
 unsigned int allocate_cluster(void){
@@ -27,11 +28,13 @@ unsigned int allocate_cluster(void){
 	}
 	unsigned int current_cluster = fat_index;
 	fat[current_cluster]=current_cluster+1;
+	freelist[current_cluster] = 0x1;
 	fat_index++;
 	return current_cluster;
 }
-void free_cluster(unsigned int* cluster){
-	*cluster = EPICFS_FC;
+void free_cluster(unsigned int cluster){
+	fat[cluster] = EPICFS_FC;
+	freelist[cluster] = 0x0;
 	return;
 }
 int createfile(const char* filename, struct epic_file** pfiledata){
@@ -97,7 +100,6 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 			pepic_file->data = new_cluster;
 		else{
 			fat[last_cluster] = new_cluster;
-			printf("cluster %d now points to cluster %d\n", last_cluster, new_cluster);
 		}
 		unsigned char* src_chunk = srcbuf+(4096*i);
 		memcpy((void*)(data+(4096*new_cluster)), (const void*)src_chunk, 4096);
@@ -139,9 +141,14 @@ int main(int argc, char** argv){
 	hdr->bytes_per_cluster = 4096;
 	hdr->fat_size = (drivesize/4096)*4;
 	hdr->fat_size+=512-(hdr->fat_size%512);
-	hdr->data_off = 129+(hdr->fat_size/512);
-	data = (unsigned char*)(fsbuf+512+hdr->fat_size);
+	hdr->freelist_off = 129+(hdr->fat_size/512);
+	hdr->freelist_size = drivesize/4096;
+	hdr->freelist_size+=512-(hdr->freelist_size%512);
+	hdr->data_off = FS_RESERVED_SECTORS+1+(hdr->fat_size/512)+(hdr->freelist_size/512);
+	data = (unsigned char*)(fsbuf+512+hdr->fat_size+hdr->freelist_size);
+	freelist = (unsigned char*)(fsbuf+512+hdr->fat_size);
 	memset((void*)(fsbuf+512), 0, hdr->fat_size);
+	memset((void*)(freelist), 0, hdr->freelist_size);
 	while ((dirent=readdir(dir))){
 		if (dirent->d_type!=DT_REG)
 			continue;

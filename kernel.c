@@ -159,6 +159,7 @@ void kentry(void){
 	if (fsinfo.signature!=EPICFS_SIGNATURE){
 		panic("invalid file system signature\n");
 	}
+	unsigned int last_ms = time_ms;
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
 	struct file* file3 = openfile(bootdrive, "test3.txt");
@@ -168,11 +169,12 @@ void kentry(void){
 	if (!file1||!file2||!file3){
 		panic("file no exist\n");
 	}
+	printf("took %dms to get file data | ", time_ms-last_ms);
+	last_ms = time_ms;
 	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
 	if (!buffer){	
 		panic("failed to allocate memory for file buffer\n");
 	}
-	printf("size: %d\n", file1_size);
 	if (readfile(file1, buffer)!=0)
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
@@ -191,6 +193,8 @@ void kentry(void){
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
+	printf("took %dms to read files | ", time_ms-last_ms);
+	last_ms = time_ms;
 	unsigned char* newbuf = "diddy party\n";
 	if (writefile(file2, newbuf, strlen(newbuf)+1)!=0){
 		printf("failed to write file contents\n");
@@ -201,6 +205,7 @@ void kentry(void){
 	closefile(file1);
 	closefile(file2);
 	closefile(file3);
+	printf("took %dms to write to file | ", time_ms-last_ms);
 	set_multithreading(0);
 	while (1){};
 	return;	

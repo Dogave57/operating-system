@@ -31,8 +31,7 @@ int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_
                 while (!(inb(0x1F7)&(1<<3))){};
                 for (unsigned int s = 0;s<wordsPerSector;s++){
                         *buffer = inw(0x1F0);
-                        buffer++;
-			outb(0x00,0x00);
+			buffer++;
                 }
         } 
         return 0;
@@ -59,7 +58,6 @@ int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16
 		for (unsigned int s = 0;s<wordsPerSector;s++){
 			outw(0x1F0, *buffer);
 			buffer++;
-			outb(0x00,0x00);
 		}
 		if (!(inb(0x1F7)&0x01))
 			continue;
@@ -94,9 +92,17 @@ int drive_getinfo(unsigned int drive, uint16_t* info){
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 	if (!pinfo)
 		return -1;
+	static unsigned int last_drive = 0;
+	static struct epic_fshdr last_info = {0};
+	if (drive==last_drive){
+		*pinfo = last_info;
+		return 0;
+	}
 	unsigned char data[4096] = {0};
 	if (read_sectors(drive, 128, 8, (uint16_t*)data, 256)!=0)
 		return -1;
+	last_info = *(struct epic_fshdr*)data;
+	last_drive = drive;
 	*pinfo = *(struct epic_fshdr*)data;
 	return 0;
 }
@@ -181,6 +187,7 @@ struct file* openfile(unsigned int drive, const char* filename){
 	unsigned char cluster_data[4096] = {0};
 	unsigned int max_files = (sizeof(cluster_data)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	while (1){
+		printf("cluster: %d | ", current_cluster);
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster,&next_cluster)!=0)
 			return (struct file*)0x0;
@@ -199,6 +206,8 @@ struct file* openfile(unsigned int drive, const char* filename){
 		struct epic_file* filelist = (struct epic_file*)((unsigned char*)cluster_data+sizeof(struct epic_clusterhdr));
 		for (unsigned int i = 0;i<max_files;i++){
 			struct epic_file* current_file = filelist+i;
+			if (current_file->type==FILE_INVALID)
+				break;
 			if (strcmp(current_file->filename, (char*)filename)!=0){
 			current_file_index++;
 			continue;
@@ -215,7 +224,6 @@ struct file* openfile(unsigned int drive, const char* filename){
 			return newfile;
 		}
 		current_cluster = next_cluster;
-		continue;
 	}
 	return (struct file*)0x0;
 }
@@ -293,7 +301,7 @@ int deletefile(struct file* pfile){
 	unsigned int current_sector = 0;
 	unsigned int last_sector = 0;
 	unsigned int current_data_sector = 0;
-	unsigned int filedata_clusters = 1+((pepicfile->size-1)/409);
+	unsigned int filedata_clusters = 1+((pepicfile->size-1)/4096);
 	pepicfile->inuse = 0;
 	if (write_sectors(pfile->drive, file_md_sector, 8, (uint16_t*)file_data, 256)!=0)
 		return -1;

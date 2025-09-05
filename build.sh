@@ -25,4 +25,4 @@ truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
 sudo cat os.img > drive.img
 sudo gcc fsgen/main.c -o fsgen/main
-sudo ./'fsgen/main' fsgen/files drive.img 1000000
+sudo ./'fsgen/main' fsgen/files drive.img 256000000

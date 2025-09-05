@@ -21,6 +21,8 @@ struct epic_fshdr{
 	unsigned int signature;
 	unsigned int bytes_per_cluster;
 	unsigned int fat_size;
+	unsigned int freelist_size;
+	unsigned int freelist_off;
 	unsigned int data_off;
 	unsigned int last_filemd_cluster;
 }__attribute__((packed));
