@@ -411,8 +411,25 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 	unsigned int current_cluster = 0;
 	unsigned int current_cluster_sector = 0;
 	unsigned int clusters_toalloc = 0;
+	unsigned int clusters_tofree = 0;
+	if (file_clusters>clusters_needed)
+		clusters_tofree = file_clusters-clusters_needed;
 	if (file_clusters<clusters_needed)
 		clusters_toalloc = clusters_needed-file_clusters;
+	current_cluster = pfilemd->data;
+	for (unsigned int i = 0;i<file_clusters;i++){
+		unsigned int next_cluster = 0;
+		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0)
+			return -1;
+		if (i<file_clusters-clusters_tofree){
+			current_cluster = next_cluster;
+			continue;
+		}
+		if (epic_freecluster(pfile->drive, current_cluster)!=0)
+			return -1;
+		current_cluster = next_cluster;
+	}
+	current_cluster = pfilemd->data;
 	for (unsigned int i = 0;i<clusters_toalloc;i++){
 		unsigned int new_cluster = 0;
 		if (epic_alloc_cluster(pfile->drive, &new_cluster)!=0)
