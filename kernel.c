@@ -193,7 +193,7 @@ void kentry(void){
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
-	printf("took %dms to read files | ", time_ms-last_ms);
+//	printf("took %dms to read files\n", time_ms-last_ms);
 	last_ms = time_ms;
 	unsigned char* newbuf = "diddy party\n";
 	if (writefile(file2, newbuf, strlen(newbuf)+1)!=0){
@@ -201,11 +201,24 @@ void kentry(void){
 		__asm__ volatile("hlt");
 		while (1){};
 	}
-	printf("written to file successfully\n");
-	closefile(file1);
+//	closefile(file1);
 	closefile(file2);
 	closefile(file3);
-	printf("took %dms to write to file | ", time_ms-last_ms);
+	if (createfile(bootdrive, "aaaa.txt")!=0)
+		panic("failed to create file\n");
+	last_ms = time_ms;
+	unsigned int datasize = 100000;
+	unsigned char* data = (unsigned char*)kmalloc(datasize);
+	if (!data)
+		panic("failed to allocate memory for data\n");
+	struct file* f = (struct file*)openfile(bootdrive, "aaaa.txt");
+	if (!f)
+		panic("failed to create file\n");
+	if (writefile(f, data, datasize)!=0)
+		panic("failed to write to file\n");
+	closefile(f);
+	kfree((void*)data);
+	printf("took %dms to write %dbytes of data\n", time_ms-last_ms, datasize);
 	set_multithreading(0);
 	while (1){};
 	return;	

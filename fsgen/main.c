@@ -12,6 +12,7 @@ unsigned int* fat = (unsigned int*)0x0;
 unsigned char* freelist = (unsigned char*)0x0;
 unsigned char* data = (unsigned char*)0x0;
 unsigned int fat_index = 0;
+unsigned int fat_entries = 0;
 struct epic_fshdr* hdr = (struct epic_fshdr*)0x0;
 unsigned int current_filecluster = 0;
 unsigned int next_free_file = 0;
@@ -20,17 +21,17 @@ void free_cluster(unsigned int cluster);
 int createfile(const char* filename, struct epic_file** pfiledata);
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src);
 unsigned int allocate_cluster(void){
-	for (unsigned int i = 0;fat[i]!=EPICFS_EOC;i++){
-		if (fat[i]!=EPICFS_FC)
+	printf("fat entries: %d\n", fat_entries);
+	for (unsigned int i = 0;i<fat_entries;i++){
+		if (freelist[i]!=0x0)
 			continue;
 		fat[i]=i+1;
+		freelist[i] = 0x1;
+		printf("cluster %d allocated\n", i);
 		return i;
 	}
-	unsigned int current_cluster = fat_index;
-	fat[current_cluster]=current_cluster+1;
-	freelist[current_cluster] = 0x1;
-	fat_index++;
-	return current_cluster;
+	printf("no entries\n");
+	return 0;
 }
 void free_cluster(unsigned int cluster){
 	fat[cluster] = EPICFS_FC;
@@ -97,12 +98,14 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 	for (unsigned int i = 0;i<file_sectors;i++){
 		unsigned int new_cluster = allocate_cluster();
 		if (!i)
-			pepic_file->data = new_cluster;
+			pepic_file->data = new_cluster; 
 		else{
 			fat[last_cluster] = new_cluster;
 		}
 		unsigned char* src_chunk = srcbuf+(4096*i);
 		memcpy((void*)(data+(4096*new_cluster)), (const void*)src_chunk, 4096);
+		if (pepic_file->last_data_cluster)
+			fat[pepic_file->last_data_cluster] = new_cluster;
 		pepic_file->last_data_cluster = new_cluster;
 		last_cluster = new_cluster;
 	}
@@ -147,6 +150,7 @@ int main(int argc, char** argv){
 	hdr->data_off = FS_RESERVED_SECTORS+1+(hdr->fat_size/512)+(hdr->freelist_size/512);
 	data = (unsigned char*)(fsbuf+512+hdr->fat_size+hdr->freelist_size);
 	freelist = (unsigned char*)(fsbuf+512+hdr->fat_size);
+	fat_entries = (hdr->freelist_size);
 	memset((void*)(fsbuf+512), 0, hdr->fat_size);
 	memset((void*)(freelist), 0, hdr->freelist_size);
 	while ((dirent=readdir(dir))){
@@ -176,7 +180,7 @@ int main(int argc, char** argv){
 		free(fsbuf);
 		return -1;
 	}
-	memcpy((void*)(outbuf+reserved_bytes), (const void*)fsbuf, fsused);
+	memcpy((void*)(outbuf+reserved_bytes), (const void*)fsbuf, drivesize);
 	free(fsbuf);
 	FILE* outfile = fopen(outputfs, "rb");
 	if (!outfile){

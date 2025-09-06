@@ -109,29 +109,53 @@ int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 	if (!pcluster)
 		return -1;
-	unsigned int current_cluster = 0;
-	while (1){
-		unsigned int next_cluster = 0;
-		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
+	struct epic_fshdr fsinfo = {0};
+	if (epic_get_fsinfo(drive, &fsinfo)!=0)
+		return -1;
+	unsigned int avalible_entries = fsinfo.freelist_size;
+	unsigned int last_sector = 0;
+	unsigned char entry_data[512] = {0};
+	unsigned int entry_sector = 0;
+	unsigned int entry_index = 0;
+	for (unsigned int i = 0;i<avalible_entries;i++){
+		entry_sector = fsinfo.freelist_off+(i/512);
+		entry_index = i%512;
+		if (entry_sector!=last_sector||!last_sector){
+		if (read_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0)
 			return -1;
-		if (next_cluster==EPICFS_EOC)
-			return -1;
-		if (next_cluster!=EPICFS_FC)
+		}
+		if (entry_data[entry_index]!=0x0){
+			last_sector = entry_sector;
 			continue;
-		*pcluster = current_cluster;
-		return epic_writecluster(drive, current_cluster, current_cluster+1);
+		}
+		*pcluster = i;
+		entry_data[entry_index] = 0x1;
+		if (write_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0)
+			return -1;
+		return epic_writecluster(drive, i, i+1);
 	}
 	return -1;
 }
 int epic_freecluster(unsigned int drive, unsigned int cluster){
+	struct epic_fshdr fsinfo = {0};
+	if (epic_get_fsinfo(drive,&fsinfo)!=0)
+		return -1;
 	unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((cluster*4)/512);
 	unsigned int cluster_data[128] = {0};
+	unsigned char freelist_data[512] = {0};
+	unsigned int free_entrysector = fsinfo.freelist_off+(cluster/512);
+	unsigned int free_index = cluster%512;
 	unsigned int cluster_index = cluster%512;
 	if (read_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 256)!=0){
 		return -1;
 	}
+	if (read_sectors(drive, free_entrysector, 1, (uint16_t*)freelist_data, 256)!=0)
+		return -1;
 	cluster_data[cluster_index] = EPICFS_FC;
-	return write_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 256);
+	freelist_data[free_index] = 0x0;
+	if (write_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 256)!=0)
+		return -1;
+	return write_sectors(drive, free_entrysector, 1, (uint16_t*)freelist_data, 256);
 }
 int epic_writecluster(unsigned int drive, unsigned int cluster, unsigned int data){
 	unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((cluster*4)/512);
@@ -187,7 +211,6 @@ struct file* openfile(unsigned int drive, const char* filename){
 	unsigned char cluster_data[4096] = {0};
 	unsigned int max_files = (sizeof(cluster_data)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	while (1){
-		printf("cluster: %d | ", current_cluster);
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster,&next_cluster)!=0)
 			return (struct file*)0x0;
@@ -266,6 +289,10 @@ int createfile(unsigned int drive, const char* filename){
 		strcpy(pfile->filename, filename);
 		pfile->inuse = 1;
 		pfile->type = FILE_REGULAR;
+		pfile->size = 0;
+		pfile->data = 0;
+		pfile->file_cluster = pfshdr->last_filemd_cluster;
+		pfile->file_offset = i*sizeof(struct epic_file);
 		return write_sectors(drive, filemd_sector, 8, (uint16_t*)sector_data, 256);
 	}
 	unsigned int current_cluster = 0;
@@ -281,6 +308,13 @@ int createfile(unsigned int drive, const char* filename){
 	strcpy(newfile->filename, filename);
 	newfile->inuse = 1;
 	newfile->type = FILE_REGULAR;
+	newfile->file_cluster = new_cluster;
+	newfile->file_offset = 0;
+	newfile->size = 0;
+	newfile->data = 0;
+	pfshdr->last_filemd_cluster = new_cluster;
+	if (write_sectors(drive, FS_RESERVED_SECTORS, 1, (uint16_t*)fsinfo_sector_data, 256)!=0)
+		return -1;
 	return write_sectors(drive, clusterdata_sector,8, (uint16_t*)newcluster_data, 256);
 }
 int deletefile(struct file* pfile){
@@ -368,17 +402,14 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 	struct epic_file* pfilemd = (struct epic_file*)(filemd_data+md_offset);
 	if (read_sectors(pfile->drive, md_sector, 1, (uint16_t*)filemd_data, 256)!=0)
 		return -1;
-	unsigned int file_clusters = 1+((pfilemd->size-1)/4096);
-	unsigned int clusters_needed = 1+((size-1)/4096);
-	unsigned int current_cluster = pfilemd->data;
+	unsigned int file_clusters = 0;
+	if (pfilemd->size)
+		file_clusters=1+((pfilemd->size-1)/4096);
+	unsigned int clusters_needed = 0;
+	if (size)
+		clusters_needed = 1+((size-1)/4096);
+	unsigned int current_cluster = 0;
 	unsigned int current_cluster_sector = 0;
-	unsigned int last_cluster = 0;
-	unsigned int last_cluster_sector = 0;
-	unsigned int cluster_data[128] = {0};
-	unsigned int clusters_tofree = 0;
-	if (file_clusters>clusters_needed)
-		clusters_tofree = file_clusters-clusters_needed;
-	current_cluster = pfilemd->data;
 	unsigned int clusters_toalloc = 0;
 	if (file_clusters<clusters_needed)
 		clusters_toalloc = clusters_needed-file_clusters;
@@ -387,44 +418,30 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (epic_alloc_cluster(pfile->drive, &new_cluster)!=0)
 			return -1;
 		if (pfilemd->last_data_cluster){
-			if (epic_writecluster(pfile->drive, pfilemd->last_data_cluster, new_cluster)!=0)
-				return -1;
+		if (epic_writecluster(pfile->drive, pfilemd->last_data_cluster, new_cluster)!=0)
+			return -1;
 		}
+		if (!pfilemd->data)
+			pfilemd->data = new_cluster;
 		pfilemd->last_data_cluster = new_cluster;
-	}
-	current_cluster = pfilemd->data;
-	unsigned int clusters_found = 0;
-	for (unsigned int i = 0;i<clusters_tofree;clusters_found++){
-		unsigned int next_cluster = 0;
-		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0)
-			return -1;
-		if (clusters_found<file_clusters-clusters_tofree){
-			clusters_found++;
-			current_cluster = next_cluster;
-			continue;
-		}
-		if (epic_freecluster(pfile->drive, current_cluster)!=0)
-			return -1;
-		clusters_found++;
-		i++;
-		current_cluster = next_cluster;
 	}
 	current_cluster = pfilemd->data;
 	for (unsigned int i = 0;i<clusters_needed;i++){
 		unsigned int next_cluster = 0;
-		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0){
+		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0)
 			return -1;
-		}
-		unsigned int data_towrite = 4096;
+		unsigned char pdata[4096] = {0};
+		unsigned int towrite = 4096;
 		unsigned int dt = size%4096;
-		if (i==clusters_needed&&dt)
-			data_towrite = dt;
-		unsigned int cluster_sector = pfshdr->data_off+(current_cluster*8);
-		unsigned int bufindex = 4096*i;
-		if (write_sectors(pfile->drive, cluster_sector, 1, (uint16_t*)(buffer+bufindex), 256)!=0)
+		if (i==clusters_needed&&dt){
+			towrite = dt;
+		}
+		memcpy((void*)pdata, (const void*)(buffer+(i*4096)), towrite);
+		if (epic_write_clusterdata(pfile->drive, current_cluster, pdata)!=0)
 			return -1;
 		current_cluster = next_cluster;
 	}
+	pfilemd->size = size;
 	return epic_write_clusterdata(pfile->drive, pfile->file_cluster, (unsigned char*)filemd_data);
 }
 unsigned int getfilesize(struct file* pfile){
