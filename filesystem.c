@@ -416,9 +416,15 @@ int readfile(struct file* pfile, unsigned char* buffer){
 			panic("failed to read next cluster\n");
 			return -1;	
 		}
-		if (read_sectors(pfile->drive, pfshdr->data_off+(current_cluster*8), 8, (uint16_t*)(buffer+(4096*i)), 256)!=0){
+		unsigned int toread = 4096;
+		unsigned int dt = pfdata->size%4096;
+		if (i==data_clustercnt&&dt)
+			toread = dt;
+		unsigned char data[4096] = {0};
+		if (read_sectors(pfile->drive, pfshdr->data_off+(current_cluster*8), 8, (uint16_t*)(data), 256)!=0){
 			return -1;
 		}
+		memcpy((void*)(buffer+(4096*i)), (const void*)data, 4096);
 		current_cluster = next_cluster;
 	}
 	return 0;
