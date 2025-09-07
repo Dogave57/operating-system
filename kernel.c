@@ -201,7 +201,7 @@ void kentry(void){
 		__asm__ volatile("hlt");
 		while (1){};
 	}
-//	closefile(file1);
+	closefile(file1);
 	closefile(file2);
 	closefile(file3);
 	if (createfile(bootdrive, "aaaa.txt")!=0)
@@ -216,6 +216,7 @@ void kentry(void){
 		panic("failed to create file\n");
 	if (writefile(f, data, datasize)!=0)
 		panic("failed to write to file\n");
+	deletefile(f);
 	closefile(f);
 	kfree((void*)data);
 	printf("took %dms to write %dbytes of data\n", time_ms-last_ms, datasize);

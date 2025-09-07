@@ -210,7 +210,8 @@ struct file* openfile(unsigned int drive, const char* filename){
 	unsigned int last_sector = 0;
 	unsigned char cluster_data[4096] = {0};
 	unsigned int max_files = (sizeof(cluster_data)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
-	while (1){
+	unsigned int max_clusters = fshdr.fat_size/4;
+	for (current_cluster = 0;current_cluster<max_clusters;current_cluster++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster,&next_cluster)!=0)
 			return (struct file*)0x0;
@@ -231,6 +232,8 @@ struct file* openfile(unsigned int drive, const char* filename){
 			struct epic_file* current_file = filelist+i;
 			if (current_file->type==FILE_INVALID)
 				break;
+			if (!current_file->inuse)
+				continue;
 			if (strcmp(current_file->filename, (char*)filename)!=0){
 			current_file_index++;
 			continue;
@@ -337,25 +340,17 @@ int deletefile(struct file* pfile){
 	unsigned int current_data_sector = 0;
 	unsigned int filedata_clusters = 1+((pepicfile->size-1)/4096);
 	pepicfile->inuse = 0;
-	if (write_sectors(pfile->drive, file_md_sector, 8, (uint16_t*)file_data, 256)!=0)
-		return -1;
-	if (!pepicfile->size)
-		return 0;
+	pepicfile->size = 0;
+	current_cluster = pepicfile->data;
 	for (unsigned int i = 0;i<filedata_clusters;i++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0)
 			return -1;
-		if (next_cluster==EPICFS_EOC)
-			return -1;
-		if (next_cluster==EPICFS_FC){
-			current_cluster++;
-			continue;
-		}
 		if (epic_freecluster(pfile->drive, current_cluster)!=0)
 			return -1;
 		current_cluster = next_cluster;
 	}
-	return 0;
+	return write_sectors(pfile->drive, file_md_sector, 8, (uint16_t*)file_data, 256);
 }
 int readfile(struct file* pfile, unsigned char* buffer){
 	if (!pfile||!buffer)
