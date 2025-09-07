@@ -206,6 +206,11 @@ void kentry(void){
 	closefile(file1);
 	closefile(file2);
 	closefile(file3);
+	struct file* dir = opendir(bootdrive, "assets");
+	if (!dir)
+		printf("assets dir dont exis-t\n");
+	else
+		printf("assets dir exists\n");
 	set_multithreading(0);
 	while (1){};
 	return;	
