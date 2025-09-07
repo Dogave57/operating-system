@@ -62,6 +62,7 @@ int epic_readcluster(unsigned int drive, unsigned int cluster, unsigned int* pda
 int epic_write_clusterdata(unsigned int drive, unsigned int cluster, unsigned char* pdata);
 int epic_read_clusterdata(unsigned int drive, unsigned int cluser, unsigned char* pdata);
 struct file* openfile(unsigned int drive, const char* filename);
+struct file* opendir(unsigned int drive, const char* dirname);
 int renamefile(struct file* pfile, const char* newname);
 int createfile(unsigned int drive, const char* filename);
 int deletefile(struct file* pfile);

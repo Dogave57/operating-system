@@ -232,6 +232,8 @@ struct file* openfile(unsigned int drive, const char* filename){
 			struct epic_file* current_file = filelist+i;
 			if (current_file->type==FILE_INVALID)
 				break;
+			if (current_file->type!=FILE_REGULAR)
+				continue;
 			if (!current_file->inuse)
 				continue;
 			if (strcmp(current_file->filename, (char*)filename)!=0){
@@ -250,6 +252,44 @@ struct file* openfile(unsigned int drive, const char* filename){
 			return newfile;
 		}
 		current_cluster = next_cluster;
+	}
+	return (struct file*)0x0;
+}
+struct file* opendir(unsigned int drive, const char* dirname){
+	if (!dirname)
+		return (struct file*)0x0;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive, &fshdr)!=0)
+		return (struct file*)0x0;
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return (struct file*)0x0;
+	unsigned int current_cluster = 0;
+	unsigned int max_clusters = fshdr.fat_size/4;
+	unsigned int max_file_entries = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
+	unsigned char cluster_data[4096] = {0};
+	struct epic_file* file_entries = (struct epic_file*)(cluster_data+sizeof(struct epic_clusterhdr));
+	for (current_cluster = 0;current_cluster<max_clusters;current_cluster++){
+		if (epic_read_clusterdata(drive, current_cluster, (unsigned char*)cluster_data)!=0)
+			return (struct file*)0x0;
+		for (unsigned int i = 0;i<max_file_entries;i++){
+			struct epic_file* pepicfile = (struct epic_file*)(file_entries+i);	
+			if (pepicfile->type==FILE_INVALID)
+				break;
+			if (pepicfile->type!=FILE_DIR)
+				continue;
+			if (!pepicfile->inuse)
+				continue;
+			struct file* pfile = (struct file*)kmalloc(sizeof(struct file)+sizeof(struct epic_fshdr));
+			if (!pfile){
+			return (struct file*)0x0;
+			}
+			pfile->fstype = FS_EPIC;
+			pfile->filetype = FILE_DIR;
+			pfile->drive = drive;
+			pfile->file_cluster = current_cluster;
+			pfile->file_offset = i*sizeof(struct epic_file);
+			return pfile;
+		}
 	}
 	return (struct file*)0x0;
 }

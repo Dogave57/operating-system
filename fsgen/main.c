@@ -19,6 +19,7 @@ unsigned int next_free_file = 0;
 unsigned int allocate_cluster(void);
 void free_cluster(unsigned int cluster);
 int createfile(const char* filename, struct epic_file** pfiledata);
+int createdir(const char* dirname, struct epic_file** pfiledata);
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src);
 unsigned int allocate_cluster(void){
 	printf("fat entries: %d\n", fat_entries);
@@ -39,7 +40,7 @@ void free_cluster(unsigned int cluster){
 	return;
 }
 int createfile(const char* filename, struct epic_file** pfiledata){
-	if (!filename)
+	if (!filename||!pfiledata)
 		return -1;
 	if (!next_free_file||next_free_file>=4096/sizeof(struct epic_file)){
 		printf("allocating new file data cluster\n");
@@ -61,6 +62,11 @@ int createfile(const char* filename, struct epic_file** pfiledata){
 	pfile_metadata->inuse = 1;
 	*pfiledata = pfile_metadata;
 	next_free_file++;
+	return 0;
+}
+int createdir(const char* dirname, struct epic_file** pfiledata){
+	if (!dirname||!pfiledata)
+		return -1;
 	return 0;
 }
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
