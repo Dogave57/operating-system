@@ -83,13 +83,13 @@ int strcmp(char* str1, char* str2){
 int memcpy(void* dest, const void* src, size_t size){
 	if (!dest||!src||size<1)
 		return -1;
-	unsigned char isaligned = size%4;
+	unsigned char isaligned = !(size%4);
 	for (size_t i = 0;i<size;){
 		if (isaligned){
-			*((unsigned int*)dest+i)=*((unsigned int*)src+i);
+			*(unsigned int*)((unsigned char*)dest+i) = *(unsigned int*)((unsigned char*)src+i);
 			i+=4;
 			continue;
-		} 
+		}
 		*((unsigned char*)dest+i)=*((unsigned char*)src+i);
 		i++;
 	}

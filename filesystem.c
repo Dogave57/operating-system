@@ -418,8 +418,9 @@ int readfile(struct file* pfile, unsigned char* buffer){
 		}
 		unsigned int toread = 4096;
 		unsigned int dt = pfdata->size%4096;
-		if (i==data_clustercnt&&dt)
+		if (i==data_clustercnt-1&&dt){
 			toread = dt;
+		}
 		unsigned char data[4096] = {0};
 		if (read_sectors(pfile->drive, pfshdr->data_off+(current_cluster*8), 8, (uint16_t*)(data), 256)!=0){
 			return -1;
@@ -491,7 +492,7 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		unsigned char pdata[4096] = {0};
 		unsigned int towrite = 4096;
 		unsigned int dt = size%4096;
-		if (i==clusters_needed&&dt){
+		if (i==clusters_needed-1&&dt){
 			towrite = dt;
 		}
 		memcpy((void*)pdata, (const void*)(buffer+(i*4096)), towrite);

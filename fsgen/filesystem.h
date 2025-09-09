@@ -9,6 +9,7 @@ enum fsType{
 	FS_EPIC,
 };
 enum clusterType{
+	CLUSTER_INVALID,
 	CLUSTER_FILEDATA,
 	CLUSTER_FILE,
 };
