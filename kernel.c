@@ -160,6 +160,10 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
+	struct epic_file filemd = {0};
+	if (epic_findfile_inroot(bootdrive, "assets", &filemd)!=0)
+		panic("failed to get file in root\n");
+	printf("got %s in root\n", filemd.filename);
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
 	struct file* file3 = openfile(bootdrive, "test3.txt");

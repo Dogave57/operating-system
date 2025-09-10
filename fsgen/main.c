@@ -145,6 +145,8 @@ int createfile(const char* filename, struct epic_file** pfiledata){
 			if (!current_dir){
 			break;
 			}
+			filename_cpy[link_start-1] = 0;
+			printf("created file %s in %s\n", filename_cpy+link_start, filename_cpy);
 			return createfile_indir(current_dir, filename, pfiledata);
 		}
 		if (filename_cpy[i]!='/')
@@ -158,7 +160,6 @@ int createfile(const char* filename, struct epic_file** pfiledata){
 		if (findfile_indir(current_dir->file_cluster, filename_cpy+link_start, &current_dir)!=0)
 			return -1;
 		}
-		printf("read %s data\n", filename_cpy+link_start);
 		filename_cpy[i] = '/';
 		link_start = i+1;
 	}

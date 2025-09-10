@@ -197,6 +197,54 @@ int epic_read_clusterdata(unsigned int drive, unsigned int cluster, unsigned cha
 	unsigned int clusterdata_sector = fshdr.data_off+(cluster*8);
 	return read_sectors(drive, clusterdata_sector, 8, (uint16_t*)pdata, 256);
 }
+int epic_findfile_incluster(unsigned int drive, unsigned int cluster, const char* filename, struct epic_file* pfilemd){
+	if (!filename||!pfilemd)
+		return -1;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive, &fshdr)!=0)
+		return -1;
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned int max_files = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
+	unsigned char clusterdata[4096] = {0};
+	if (epic_read_clusterdata(drive, cluster, clusterdata)!=0)
+		return -1;
+	struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(clusterdata);
+	if (clusterhdr->type==CLUSTER_INVALID)
+		return -1;
+	struct epic_file* pfilelist = (struct epic_file*)(clusterhdr+1);
+	for (unsigned int i = 0;i<max_files;i++){
+		struct epic_file* pentry = pfilelist+i;
+		if (pentry->type==FILE_INVALID)
+			break;
+		if (!pentry->inuse)
+			continue;
+		if (strcmp(pentry->filename, (char*)filename)!=0)
+			continue;
+		*pfilemd = *pentry;
+		return 0;
+	}
+	return -1;	
+}
+int epic_findfile_inroot(unsigned int drive, const char* filename, struct epic_file* pfilemd){
+	if (!filename||!pfilemd)
+		return -1;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive, &fshdr)!=0)
+		return -1;
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned int current_cluster = 0;
+	unsigned char clusterdata[4096] = {0};
+	unsigned int max_files = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
+	unsigned int last_cluster = fshdr.fat_size/sizeof(unsigned int);
+	for (current_cluster = 0;current_cluster<last_cluster;current_cluster++){
+		if (epic_findfile_incluster(drive, current_cluster, filename, pfilemd)!=0)
+			continue;
+		return 0;	
+	}
+	return -1;
+}
 struct file* openfile(unsigned int drive, const char* filename){
 	if (!filename)
 		return (struct file*)0x0;
