@@ -164,6 +164,12 @@ void kentry(void){
 	if (epic_findfile_inroot(bootdrive, "assets", &filemd)!=0)
 		panic("failed to get file in root\n");
 	printf("got %s in root\n", filemd.filename);
+	struct file* testfile = openfile(bootdrive, "assets/fonts/font.txt");
+	if (!testfile)
+		printf("test file not found!\n");
+	else
+		printf("test file found\n");
+	closefile(testfile);
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
 	struct file* file3 = openfile(bootdrive, "test3.txt");

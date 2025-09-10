@@ -197,7 +197,7 @@ int epic_read_clusterdata(unsigned int drive, unsigned int cluster, unsigned cha
 	unsigned int clusterdata_sector = fshdr.data_off+(cluster*8);
 	return read_sectors(drive, clusterdata_sector, 8, (uint16_t*)pdata, 256);
 }
-int epic_findfile_incluster(unsigned int drive, unsigned int cluster, const char* filename, struct epic_file* pfilemd){
+int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* filename, struct epic_file* pfilemd){
 	if (!filename||!pfilemd)
 		return -1;
 	struct epic_fshdr fshdr = {0};
@@ -219,6 +219,7 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, const char
 			break;
 		if (!pentry->inuse)
 			continue;
+		printf("%s", pentry->filename);
 		if (strcmp(pentry->filename, (char*)filename)!=0)
 			continue;
 		*pfilemd = *pentry;
@@ -226,7 +227,7 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, const char
 	}
 	return -1;	
 }
-int epic_findfile_inroot(unsigned int drive, const char* filename, struct epic_file* pfilemd){
+int epic_findfile_inroot(unsigned int drive, char* filename, struct epic_file* pfilemd){
 	if (!filename||!pfilemd)
 		return -1;
 	struct epic_fshdr fshdr = {0};
@@ -245,7 +246,36 @@ int epic_findfile_inroot(unsigned int drive, const char* filename, struct epic_f
 	}
 	return -1;
 }
-struct file* openfile(unsigned int drive, const char* filename){
+int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, struct epic_file* pfilemd){
+	if (!filename||!pfilemd)
+		return -1;
+	struct epic_fshdr fshdr = {0};
+	if (epic_get_fsinfo(drive, &fshdr)!=0)
+		return -1;
+	if (fshdr.signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned char md_clusterdata[4096] = {0};
+	if (epic_read_clusterdata(drive, dirmd_cluster, md_clusterdata)!=0)
+		return -1;
+	struct epic_file* pfile = (struct epic_file*)(md_clusterdata+sizeof(struct epic_clusterhdr)+dirmd_offset);
+	if (!pfile->data||!pfile->size)
+		return -1;
+	unsigned int max_clusterfiles = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
+	unsigned int file_clusters = 1+((pfile->size-1)/4096);
+	unsigned int current_cluster = pfile->data;
+	for (unsigned int i = 0;i<file_clusters;i++){
+		unsigned int next_cluster = 0;
+		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
+			return -1;
+		if (epic_findfile_incluster(drive, current_cluster, filename, pfilemd)!=0){
+			current_cluster = next_cluster;
+			continue;
+		}
+		return 0;
+	}
+	return -1;
+}
+struct file* openfile(unsigned int drive, char* filename){
 	if (!filename)
 		return (struct file*)0x0;
 	struct epic_fshdr fshdr = {0};
@@ -253,6 +283,26 @@ struct file* openfile(unsigned int drive, const char* filename){
 		return (struct file*)0x0;
 	if (fshdr.signature!=EPICFS_SIGNATURE)
 		return (struct file*)0x0;
+	unsigned int link_start = 0;
+	struct epic_file currentdir = {0};
+	for (unsigned int i = 0;filename[i];i++){
+		if (filename[i]!='/')
+			continue;
+		filename[i] = 0;
+		if (currentdir.inuse!=0){
+		if (epic_findfile_indir(drive, currentdir.file_cluster, currentdir.file_offset, filename+link_start, &currentdir)!=0)
+			//printf("failed to find %s in %s", filename+link_start, currentdir.filename);
+			return (struct file*)0x0;
+		}
+		if (!currentdir.inuse){
+		if (epic_findfile_inroot(drive, filename+link_start, &currentdir)!=0){
+			printf("failed to find %s in root", filename+link_start);
+			return (struct file*)0x0;
+		}
+		}
+		filename[i] = '/';
+		link_start = i+1;
+	}	
 	unsigned int current_cluster = 0;
 	unsigned int current_sector = 0;
 	unsigned int last_sector = 0;
@@ -303,7 +353,7 @@ struct file* openfile(unsigned int drive, const char* filename){
 	}
 	return (struct file*)0x0;
 }
-struct file* opendir(unsigned int drive, const char* dirname){
+struct file* opendir(unsigned int drive, char* dirname){
 	if (!dirname)
 		return (struct file*)0x0;
 	struct epic_fshdr fshdr = {0};
@@ -341,7 +391,7 @@ struct file* opendir(unsigned int drive, const char* dirname){
 	}
 	return (struct file*)0x0;
 }
-int renamefile(struct file* pfile, const char* newname){
+int renamefile(struct file* pfile, char* newname){
 	if (!pfile)
 		return -1;
 	if (pfile->fstype!=FS_EPIC)
@@ -358,7 +408,7 @@ int renamefile(struct file* pfile, const char* newname){
 	strcpy(pfile_data->filename, newname);
 	return write_sectors(pfile->drive, filedata_sector, 8, (uint16_t*)sector_data, 256);
 }
-int createfile(unsigned int drive, const char* filename){
+int createfile(unsigned int drive, char* filename){
 	if (!filename)
 		return -1;
 	unsigned char fsinfo_sector_data[512] = {0};
