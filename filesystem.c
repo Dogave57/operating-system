@@ -212,6 +212,7 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 	struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(clusterdata);
 	if (clusterhdr->type==CLUSTER_INVALID)
 		return -1;
+	printf("cluster %d", cluster);
 	struct epic_file* pfilelist = (struct epic_file*)(clusterhdr+1);
 	for (unsigned int i = 0;i<max_files;i++){
 		struct epic_file* pentry = pfilelist+i;
@@ -263,10 +264,14 @@ int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned
 	unsigned int max_clusterfiles = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned int file_clusters = 1+((pfile->size-1)/4096);
 	unsigned int current_cluster = pfile->data;
+	printf("fname: '%s'", pfile->filename);
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
 			return -1;
+		if (!next_cluster)
+			next_cluster = current_cluster+1;
+		printf("clstr:%d", current_cluster);	
 		if (epic_findfile_incluster(drive, current_cluster, filename, pfilemd)!=0){
 			current_cluster = next_cluster;
 			continue;
@@ -290,8 +295,8 @@ struct file* openfile(unsigned int drive, char* filename){
 			continue;
 		filename[i] = 0;
 		if (currentdir.inuse!=0){
+		printf("finding file '%s' in '%s'", filename+link_start, currentdir.filename);
 		if (epic_findfile_indir(drive, currentdir.file_cluster, currentdir.file_offset, filename+link_start, &currentdir)!=0)
-			//printf("failed to find %s in %s", filename+link_start, currentdir.filename);
 			return (struct file*)0x0;
 		}
 		if (!currentdir.inuse){
