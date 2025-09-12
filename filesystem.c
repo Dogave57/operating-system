@@ -117,7 +117,7 @@ int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 	unsigned char entry_data[512] = {0};
 	unsigned int entry_sector = 0;
 	unsigned int entry_index = 0;
-	for (unsigned int i = 0;i<avalible_entries;i++){
+	for (unsigned int i = 1;i<avalible_entries;i++){
 		entry_sector = fsinfo.freelist_off+(i/512);
 		entry_index = i%512;
 		if (entry_sector!=last_sector||!last_sector){
@@ -212,7 +212,6 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 	struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(clusterdata);
 	if (clusterhdr->type==CLUSTER_INVALID)
 		return -1;
-	printf("cluster %d", cluster);
 	struct epic_file* pfilelist = (struct epic_file*)(clusterhdr+1);
 	for (unsigned int i = 0;i<max_files;i++){
 		struct epic_file* pentry = pfilelist+i;
@@ -220,7 +219,6 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 			break;
 		if (!pentry->inuse)
 			continue;
-		printf("%s", pentry->filename);
 		if (strcmp(pentry->filename, (char*)filename)!=0)
 			continue;
 		*pfilemd = *pentry;
@@ -264,14 +262,13 @@ int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned
 	unsigned int max_clusterfiles = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned int file_clusters = 1+((pfile->size-1)/4096);
 	unsigned int current_cluster = pfile->data;
-	printf("fname: '%s'", pfile->filename);
+	printf("looking for %s in dir %s", filename, pfile->filename);
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
 			return -1;
 		if (!next_cluster)
 			next_cluster = current_cluster+1;
-		printf("clstr:%d", current_cluster);	
 		if (epic_findfile_incluster(drive, current_cluster, filename, pfilemd)!=0){
 			current_cluster = next_cluster;
 			continue;
@@ -289,18 +286,35 @@ struct file* openfile(unsigned int drive, char* filename){
 	if (fshdr.signature!=EPICFS_SIGNATURE)
 		return (struct file*)0x0;
 	unsigned int link_start = 0;
-	struct epic_file currentdir = {0};
-	for (unsigned int i = 0;filename[i];i++){
+	struct epic_file currentfile = {0};
+	for (unsigned int i = 0;;i++){
+		if (!filename[i]){
+			if (!currentfile.inuse){
+			break;	
+			}
+			struct file* pfile = (struct file*)kmalloc(sizeof(struct file)+sizeof(struct epic_fshdr));
+			if (!pfile){
+			return (struct file*)0x0;
+			}
+			*(struct epic_fshdr*)(pfile+1) = fshdr;
+			pfile->fstype = FS_EPIC;
+			pfile->filetype = FILE_REGULAR;
+			pfile->drive = drive;
+			pfile->file_cluster = currentfile.file_cluster;
+			pfile->file_offset = currentfile.file_offset;
+			return pfile;
+		}
 		if (filename[i]!='/')
 			continue;
 		filename[i] = 0;
-		if (currentdir.inuse!=0){
-		printf("finding file '%s' in '%s'", filename+link_start, currentdir.filename);
-		if (epic_findfile_indir(drive, currentdir.file_cluster, currentdir.file_offset, filename+link_start, &currentdir)!=0)
+		if (currentfile.inuse!=0){
+		if (epic_findfile_indir(drive, currentfile.file_cluster, currentfile.file_offset, filename+link_start, &currentfile)!=0){
+			printf("failed to find %s in %s", filename+link_start, currentfile.filename);
 			return (struct file*)0x0;
 		}
-		if (!currentdir.inuse){
-		if (epic_findfile_inroot(drive, filename+link_start, &currentdir)!=0){
+		}
+		if (!currentfile.inuse){
+		if (epic_findfile_inroot(drive, filename+link_start, &currentfile)!=0){
 			printf("failed to find %s in root", filename+link_start);
 			return (struct file*)0x0;
 		}
@@ -314,7 +328,7 @@ struct file* openfile(unsigned int drive, char* filename){
 	unsigned char cluster_data[4096] = {0};
 	unsigned int max_files = (sizeof(cluster_data)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned int max_clusters = fshdr.fat_size/4;
-	for (current_cluster = 0;current_cluster<max_clusters;current_cluster++){
+	for (current_cluster = 1;current_cluster<max_clusters;current_cluster++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster,&next_cluster)!=0)
 			return (struct file*)0x0;
@@ -371,7 +385,7 @@ struct file* opendir(unsigned int drive, char* dirname){
 	unsigned int max_file_entries = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned char cluster_data[4096] = {0};
 	struct epic_file* file_entries = (struct epic_file*)(cluster_data+sizeof(struct epic_clusterhdr));
-	for (current_cluster = 0;current_cluster<max_clusters;current_cluster++){
+	for (current_cluster = 1;current_cluster<max_clusters;current_cluster++){
 		if (epic_read_clusterdata(drive, current_cluster, (unsigned char*)cluster_data)!=0)
 			return (struct file*)0x0;
 		for (unsigned int i = 0;i<max_file_entries;i++){

@@ -163,27 +163,24 @@ void kentry(void){
 	struct epic_file filemd = {0};
 	if (epic_findfile_inroot(bootdrive, "assets", &filemd)!=0)
 		panic("failed to get file in root\n");
-	printf("got %s in root\n", filemd.filename);
 	struct file* testfile = openfile(bootdrive, "assets/fonts/font.txt");
 	if (!testfile)
-		printf("test file not found!\n");
-	else
-		printf("test file found\n");
-	closefile(testfile);
+		panic("test file not found\n");
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
-	struct file* file3 = openfile(bootdrive, "test3.txt");
 	unsigned int file1_size = getfilesize(file1);
 	unsigned int file2_size = getfilesize(file2);
-	unsigned int file3_size = getfilesize(file3);
-	if (!file1||!file2||!file3){
+	unsigned int testfile_size = getfilesize(testfile);
+	printf("size: %d\n", testfile_size);
+	while(1){};
+	if (!file1||!file2){
 		panic("file no exist\n");
 	}
 	printf("took %dms to get file data | ", time_ms-last_ms);
 	last_ms = time_ms;
 	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
 	if (!buffer){	
-		panic("failed to allocate memory for file buffer\n");
+		panic("failed to allocate memory for test 1 file buffer\n");
 	}
 	if (readfile(file1, buffer)!=0)
 		panic("failed to read file\n");
@@ -191,17 +188,17 @@ void kentry(void){
 	kfree((void*)buffer);
 	buffer = (unsigned char*)kmalloc(file2_size);
 	if (!buffer)
-		panic("failed to allocate memory for buffer\n");
+		panic("failed to allocate memory for buffer for file 2\n");
 	if (readfile(file2, buffer)!=0)
 		panic("failed to read file\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
-	buffer = (unsigned char*)kmalloc(file3_size);
+	buffer = (unsigned char*)kmalloc(testfile_size);
 	if (!buffer)
-		panic("failed to allocate memory for buffer\n");
-	if (readfile(file3, buffer)!=0)
-		panic("failed to read file\n");
-	printf("contents: %s\n", buffer);
+		panic("failed to allocate memory for buffer for fonts file\n");
+	if (readfile(testfile, buffer)!=0)
+		panic("failed to read from fonts file\n");
+	printf("%s\n", buffer);
 	kfree((void*)buffer);
 	last_ms = time_ms;
 	unsigned char* newbuf = "diddy party\n";
@@ -215,7 +212,7 @@ void kentry(void){
 		panic("failed to write file 1 contents\n");
 	closefile(file1);
 	closefile(file2);
-	closefile(file3);
+	closefile(testfile);
 	set_multithreading(0);
 	while (1){};
 	return;	

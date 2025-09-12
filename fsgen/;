@@ -108,6 +108,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 			pfileentry->file_cluster = current_cluster;
 			pfileentry->file_offset = s*sizeof(struct epic_file);
 			*pfiledata = pfileentry;
+			printf("created file in cluster %d inedx %d\n", current_cluster, i);
 			return 0;
 			}
 			current_cluster = next_cluster;
@@ -128,9 +129,8 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 	pentry->file_cluster = new_cluster;
 	pentry->file_offset = 0;
 	pentry->type = type;
-	if (!pdir->data)
-		pdir->data = new_cluster;
-	pdir->last_data_cluster = new_cluster;
+	pdir->data = new_cluster;
+	pdir->last_data_cluster = pdir->data;
 	pdir->size += sizeof(struct epic_file);
 	*pfiledata = pentry;
 	printf("created %s in dir %s with cluster %d\n", filename, pdir->filename, new_cluster);
@@ -218,7 +218,7 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 	}
 	unsigned int bytes_read = (unsigned int)fread((void*)srcbuf, 1, srcsize, srcfile);	
 	fclose(srcfile);
-	struct epic_file* pepic_file = (struct epic_file*)(data+(cluster*4096)+(clusteroff)+sizeof(struct epic_clusterhdr));
+	struct epic_file* pepic_file = (struct epic_file*)(data+(cluster*4096)+(clusteroff*sizeof(struct epic_file))+sizeof(struct epic_clusterhdr));
 	struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)(data+(cluster*4096));
 	if (pclusterhdr->type==CLUSTER_INVALID){
 		printf("invalid file!\n");
