@@ -21,6 +21,7 @@ unsigned int next_free_file = 0;
 unsigned int allocate_cluster(enum clusterType type);
 void free_cluster(unsigned int cluster);
 int findfile_incluster(unsigned int cluster, const char* filename, struct epic_file** ppfilemd);
+int findfile_indir(struct epic_file* pfilemd, const char* filename, struct epic_file** ppfilemd);
 int findfile_inroot(const char* filename, struct epic_file** pfilemd);
 int createfile_incluster(unsigned int cluster, struct epic_file** pfiledata, const char* filename, enum fileType type);
 int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_file** ppfilemd, enum fileType type);
@@ -53,14 +54,11 @@ int findfile_incluster(unsigned int cluster, const char* filename, struct epic_f
 		return -1;
 	unsigned char* clusterdata = (unsigned char*)(data+(cluster*4096));
 	struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(clusterdata);
-	if (clusterhdr->type!=CLUSTER_FILE)
-		return -1;
 	struct epic_file* pfilelist = (struct epic_file*)(clusterdata+sizeof(struct epic_clusterhdr));
 	unsigned int max_files = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	for (unsigned int i = 0;i<max_files;i++){
 		struct epic_file* pfile_entry = (struct epic_file*)(pfilelist+i);
-		if (pfile_entry->type==FILE_INVALID)
-			break;
+		printf("found %s in %s when looking in cluster %d\n", pfile_entry->filename, filename, cluster);
 		if (!pfile_entry->inuse)
 			continue;
 		if (strcmp(pfile_entry->filename, filename)!=0)
@@ -70,11 +68,23 @@ int findfile_incluster(unsigned int cluster, const char* filename, struct epic_f
 	}
 	return -1;
 }
-int findfile_indir(unsigned int dircluster, const char* filename, struct epic_file** ppfilemd){
-	if (!filename||!ppfilemd)
+int findfile_indir(struct epic_file* pfilemd, const char* filename, struct epic_file** ppfilemd){
+	if (!filename||!ppfilemd||!pfilemd)
 		return -1;
-	struct epic_file* filemd = (struct epic_file*)(data+(dircluster*4096));
-	return 0;
+	unsigned int current_cluster = pfilemd->data;
+	unsigned int file_clusters = 0;
+	if (pfilemd->size!=0)
+		file_clusters = 1+((file_clusters-1)/4096);
+	for (unsigned int i = 0;i<file_clusters;i++){
+		if (fat[current_cluster]==EPICFS_EOC)
+			return -1;
+		if (findfile_incluster(current_cluster, filename, ppfilemd)!=0){
+		current_cluster = fat[current_cluster];
+		continue;
+		}
+		return 0;
+	}
+	return -1;
 }
 int findfile_inroot(const char* filename, struct epic_file** ppfilemd){
 	if (!filename||!ppfilemd)
@@ -153,32 +163,43 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	unsigned int link_start = 0;
 	struct epic_file* current_dir = (struct epic_file*)0x0;
 	unsigned int current_cluster = 0;
-	printf("creating file %s\n", filename);
-	for (unsigned int i = 0;;i++){
+	for (unsigned int i = 0;i<256;i++){
 		if (!filename_cpy[i]){
 			if (!current_dir){
 			break;
 			}
-			printf("time to find %s in %s\n", filename_cpy+link_start, current_dir->filename);
-			return createfile_indir(current_dir, filename_cpy+link_start, pfiledata, type);
+			if (createfile_indir(current_dir, filename_cpy+link_start, pfiledata, type)!=0){
+			printf("failed to create %s in %s\n", filename_cpy+link_start, current_dir->filename);
+			return -1;
+			}
+			printf("successfully created %s in %s\n", filename_cpy+link_start, current_dir->filename);
+			return 0;	
 		}
 		if (filename_cpy[i]!='/')
 			continue;
 		filename_cpy[i] = 0;
-		if (!current_dir){
-		if (findfile_inroot(filename_cpy+link_start, &current_dir)!=0)
+		printf("link: %s\n", filename_cpy+link_start);
+		if (current_dir==(struct epic_file*)0x0){
+			if (findfile_inroot(filename_cpy+link_start, &current_dir)!=0){
+			printf("failed to find %s in root\n",filename);
+			return -1;
+			}
+			link_start = i+1;
+			continue;
+		}
+		if (findfile_indir(current_dir, filename_cpy+link_start, &current_dir)!=0){
+			printf("failed to find %s in dir %s\n", filename_cpy+link_start, current_dir->filename);
 			return -1;
 		}
-		if (current_dir){
-		if (findfile_indir(current_dir->file_cluster, filename_cpy+link_start, &current_dir)!=0)
-			return -1;
-		}
-		printf("link: %s\n",filename_cpy+link_start);
 		link_start = i+1;
 	}
 	unsigned int max_file_entries = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	if (!next_free_file||next_free_file>max_file_entries||!current_filecluster){
 		current_filecluster = allocate_cluster(CLUSTER_FILEDATA);
+		if (!current_filecluster){
+			printf("failed to allocate new file data cluster\n");
+			return -1;	
+		}
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)(data+(4096*current_filecluster));
 		pclusterhdr->type = CLUSTER_FILE;
 		pclusterhdr->cluster = current_filecluster;
@@ -197,6 +218,7 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	pfile_metadata->inuse = 1;
 	*pfiledata = pfile_metadata;
 	next_free_file++;
+	printf("successfully created %s in root\n", filename);
 	return 0;
 }
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
