@@ -40,7 +40,8 @@ struct epic_file{
 	unsigned int file_cluster;
 	unsigned int file_offset;
 	unsigned int inuse;
-}__attribute__((aligned(64)));
+	unsigned char align[4];
+}__attribute__((packed));
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;

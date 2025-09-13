@@ -161,20 +161,32 @@ void kentry(void){
 	}
 	unsigned int last_ms = time_ms;
 	struct epic_file filemd = {0};
-	if (epic_findfile_inroot(bootdrive, "assets", &filemd)!=0)
-		panic("failed to get file in root\n");
+	struct file* graphicsfile = openfile(bootdrive, "assets/graphics");
+	if (!graphicsfile){
+		printf("failed to find graphics dir\n");
+		if (createfile(bootdrive, "assets/graphics", FILE_DIR)!=0)
+			printf("failed to create graphics dir in assets\n");
+		else
+			printf("successfully created graphics dir\n");
+		while (1){};
+	}
 	struct file* testfile = openfile(bootdrive, "assets/fonts/font.txt");
-	if (!testfile)
-		panic("test file not found\n");
+	if (!testfile){
+		printf("test file not found\n");
+		while(1){};
+	}
+	struct file* graphicsdir = openfile(bootdrive, "assets");
+	if (!graphicsdir)
+		panic("graphics dir don't exist\n");
 	struct file* file1 = openfile(bootdrive, "test.txt");
 	struct file* file2 = openfile(bootdrive, "test2.txt");
 	unsigned int file1_size = getfilesize(file1);
 	unsigned int file2_size = getfilesize(file2);
 	unsigned int testfile_size = getfilesize(testfile);
 	printf("size: %d\n", testfile_size);
-	while(1){};
 	if (!file1||!file2){
-		panic("file no exist\n");
+		printf("file no exist\n");
+		while(1){};
 	}
 	printf("took %dms to get file data | ", time_ms-last_ms);
 	last_ms = time_ms;
@@ -198,7 +210,7 @@ void kentry(void){
 		panic("failed to allocate memory for buffer for fonts file\n");
 	if (readfile(testfile, buffer)!=0)
 		panic("failed to read from fonts file\n");
-	printf("%s\n", buffer);
+	printf("fonts data hehe: %s\n", buffer);
 	kfree((void*)buffer);
 	last_ms = time_ms;
 	unsigned char* newbuf = "diddy party\n";

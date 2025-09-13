@@ -42,7 +42,8 @@ struct epic_file{
 	unsigned int file_cluster;
 	unsigned int file_offset;
 	unsigned int inuse;
-}__attribute__((aligned(64)));
+	unsigned char align[4];
+}__attribute__((packed));
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;
@@ -65,10 +66,11 @@ int epic_read_clusterdata(unsigned int drive, unsigned int cluster, unsigned cha
 int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* filename, struct epic_file* pfilemd);
 int epic_findfile_inroot(unsigned int drive, char* filename, struct epic_file* pfilemd);
 int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, struct epic_file* pfilemd);
+int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, enum fileType type);
 struct file* openfile(unsigned int drive, char* filename);
 struct file* opendir(unsigned int drive, char* dirname);
 int renamefile(struct file* pfile, char* newname);
-int createfile(unsigned int drive, char* filename);
+int createfile(unsigned int drive, char* filename, enum fileType type);
 int deletefile(struct file* pfile);
 int readfile(struct file* pfile, unsigned char* buffer);
 int writefile(struct file* pfile, unsigned char* buffer, unsigned int size);
