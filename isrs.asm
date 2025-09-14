@@ -386,28 +386,21 @@ push eax
 call exception_handler
 iret
 syscall_isr:
+cli
+mov dword [eax+SYSV_PRINTF], printf
+mov dword [eax+SYSV_PRINT], print
+mov dword [eax+SYSV_PUTCHAR], putchar
+mov dword [eax+SYSV_OPENFILE], openfile
+mov dword [eax+SYSV_CLOSEFILE], closefile
+mov dword [eax+SYSV_WRITEFILE], writefile
+mov dword [eax+SYSV_READFILE], readfile
+mov dword [eax+SYSV_DELETEFILE], deletefile
+mov dword [eax+SYSV_CREATEFILE], createfile
+mov dword [eax+SYSV_GETFILESIZE], getfilesize
+mov dword [eax+SYSV_KMALLOC], kmalloc
+mov dword [eax+SYSV_KFREE], kfree
+mov dword [eax+SYSV_RENAMEFILE], renamefile
 sti
-add esp, 16
-cmp ecx, SYSV_PRINTF
-je printf
-cmp ecx, SYSV_PRINT
-je print
-cmp ecx, SYSV_PUTCHAR
-je putchar
-cmp ecx, SYSV_OPENFILE
-je openfile
-cmp ecx, SYSV_CLOSEFILE
-je closefile
-cmp ecx, SYSV_WRITEFILE
-je writefile
-cmp ecx, SYSV_READFILE
-je readfile
-cmp ecx, SYSV_DELETEFILE
-je deletefile
-cmp ecx, SYSV_CREATEFILE
-je createfile
-cmp ecx, SYSV_GETFILESIZE
-je getfilesize
-ret
+iret
 msg db "eip: %p", 10
 db 0

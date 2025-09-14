@@ -2,68 +2,96 @@
 #include "stdlib.h"
 #include "memory.h"
 #include "sys_service.h"
-__attribute__((noreturn)) int sys_printf(const char* fmt, ...){
-	__asm__ volatile("mov $1, %ecx");
-	__asm__ volatile("int $0x90");
-	while (1){};
+static uint32_t syscall_list[32] = {0};
+void sys_getsyscall_list(uint32_t* plist);
+int sys_printf(const char* fmt, ...){
+	sys_getsyscall_list(syscall_list);
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_PRINTF]));
+	return 0;
 }
-__attribute__((noreturn))int sys_print(const char* msg){
-	__asm__ volatile("mov $2, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_print(const char* msg){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_PRINT]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_putchar(char ch){
-	__asm__ volatile("mov $3, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_putchar(char ch){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_PUTCHAR]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_kmalloc(unsigned int size){
-	__asm__ volatile("mov $12, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_kmalloc(unsigned int size){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_KMALLOC]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_kfree(void* p){
-	__asm__ volatile("mov $13, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_kfree(void* p){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_KFREE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))struct file* sys_openfile(unsigned int drive, const char* filename){
-	__asm__ volatile("mov $4, %ecx");
-	__asm__ volatile("int $0x90");
+struct file* sys_openfile(unsigned int drive, const char* filename){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_OPENFILE]));
 	while(1){};
+	return (struct file*)0x0;
 }
-__attribute__((noreturn))int sys_createfile(unsigned int drive, const char* filename){
-	__asm__ volatile("mov $5, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_createfile(unsigned int drive, const char* filename){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_CREATEFILE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_deletefile(struct file* pfile){
-	__asm__ volatile("mov $6, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_deletefile(struct file* pfile){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_DELETEFILE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_readfile(struct file* pfile, unsigned char* pbuf){
-	__asm__ volatile("mov $7, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_readfile(struct file* pfile, unsigned char* pbuf){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_READFILE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_writefile(struct file* pfile, unsigned char* pbuf, unsigned int size){
-	__asm__ volatile("mov $8, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_writefile(struct file* pfile, unsigned char* pbuf, unsigned int size){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_WRITEFILE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_renamefile(struct file* pfile, const char* newname){
-	__asm__ volatile("mov $9, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_renamefile(struct file* pfile, const char* newname){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_RENAMEFILE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))unsigned int sys_getfilesize(struct file* pfile){
-	__asm__ volatile("mov $10, %ecx");
-	__asm__ volatile("int $0x90");
+unsigned int sys_getfilesize(struct file* pfile){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_GETFILESIZE]));
 	while (1){};
+	return 0;
 }
-__attribute__((noreturn))int sys_closefile(struct file* pfile){
-	__asm__ volatile("mov $11, %ecx");
-	__asm__ volatile("int $0x90");
+int sys_closefile(struct file* pfile){
+	if (!syscall_list[0])
+		sys_getsyscall_list(syscall_list);
+	__asm__ volatile("jmp *%0" :: "r"(syscall_list[SYSV_CLOSEFILE]));
 	while (1){};
+	return 0;
 }

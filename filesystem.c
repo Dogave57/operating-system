@@ -501,6 +501,7 @@ struct file* openfile(unsigned int drive, char* filename){
 			newfile->drive = drive;
 			newfile->file_cluster = current_cluster;
 			newfile->file_offset = i*sizeof(struct epic_file);
+			printf("successfully found and created handle to %s in root\n", filename);
 			return newfile;
 		}
 		current_cluster = next_cluster;
@@ -641,6 +642,12 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 	if (write_sectors(drive, FS_RESERVED_SECTORS, 1, (uint16_t*)fsinfo_sector_data, 256)!=0)
 		return -1;
 	return write_sectors(drive, clusterdata_sector,8, (uint16_t*)newcluster_data, 256);
+}
+int getfilelist(unsigned int drive, struct file* pdir, struct epic_file** pplist, unsigned int* ppentries){
+	if (!pdir||!pplist||!ppentries)
+		return -1;
+	
+	return 0;
 }
 int deletefile(struct file* pfile){
 	if (!pfile)

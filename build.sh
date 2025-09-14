@@ -2,6 +2,7 @@ CFLAGS='-nostdlib -ffreestanding'
 LDFLAGS=''
 nasm -f bin bootloader.asm -o bootloader.bin
 nasm -f elf32 isrs.asm -o isrs.o
+nasm -f elf32 sys_service.asm -o sys_service_asm.o
 i686-elf-gcc -c -O0 -fno-pic kernel.c $CFLAGS -T linker.ld -o kernel.o
 i686-elf-gcc -c -O0 -fno-pic commands.c $CFLAGS -o commands.o
 i686-elf-gcc -c -O0 -fno-pic video.c $CFLAGS -o video.o
@@ -19,7 +20,7 @@ i686-elf-gcc -c -O0 -fno-pic pci.c $CFLAGS -o pci.o
 i686-elf-gcc -c -O0 -fno-pic smbios.c $CFLAGS -o smbios.o
 i686-elf-gcc -c -O0 -fno-pic dev.c $CFLAGS -o dev.o
 i686-elf-gcc -c -O0 -fno-pic sys_service.c $CFLAGS -o sys_service.o
-i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o sys_service.o -o kernel.elf
+i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o sys_service.o sys_service_asm.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
