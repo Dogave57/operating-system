@@ -45,6 +45,7 @@ void isr21(void);
 void isr28(void);
 void isr29(void);
 void isr30(void);
+void syscall_isr(void);
 int idt_set_descriptor(uint8_t vector, uint32_t isr, uint8_t flags);
 int idt_init(void);
 #endif

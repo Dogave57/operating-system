@@ -1,3 +1,16 @@
+%define SYSV_PRINTF 1
+%define SYSV_PRINT 2
+%define SYSV_PUTCHAR 3
+%define SYSV_OPENFILE 4
+%define SYSV_CREATEFILE 5
+%define SYSV_DELETEFILE 6
+%define SYSV_READFILE 7
+%define SYSV_WRITEFILE 8
+%define SYSV_RENAMEFILE 9
+%define SYSV_GETFILESIZE 10
+%define SYSV_CLOSEFILE 11
+%define SYSV_KMALLOC 12
+%define SYSV_KFREE 13
 global default_master_isr
 global default_slave_isr
 global timer_isr
@@ -26,9 +39,22 @@ global isr21
 global isr28
 global isr29
 global isr30
+global syscall_isr
 extern timer_interrupt
 extern keyboard_interrupt
 extern printf
+extern print
+extern putchar
+extern openfile
+extern createfile
+extern deletefile
+extern readfile
+extern writefile
+extern renamefile
+extern getfilesize
+extern closefile
+extern kmalloc
+extern kfree
 extern exception_handler
 _start:
 
@@ -359,5 +385,29 @@ mov dword eax, 30
 push eax 
 call exception_handler
 iret
+syscall_isr:
+sti
+add esp, 16
+cmp ecx, SYSV_PRINTF
+je printf
+cmp ecx, SYSV_PRINT
+je print
+cmp ecx, SYSV_PUTCHAR
+je putchar
+cmp ecx, SYSV_OPENFILE
+je openfile
+cmp ecx, SYSV_CLOSEFILE
+je closefile
+cmp ecx, SYSV_WRITEFILE
+je writefile
+cmp ecx, SYSV_READFILE
+je readfile
+cmp ecx, SYSV_DELETEFILE
+je deletefile
+cmp ecx, SYSV_CREATEFILE
+je createfile
+cmp ecx, SYSV_GETFILESIZE
+je getfilesize
+ret
 msg db "eip: %p", 10
 db 0

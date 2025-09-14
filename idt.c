@@ -47,6 +47,7 @@ int idt_init(void){
 	idt_set_descriptor(30, (uint32_t)isr30, 0x8E);
 	idt_set_descriptor(0x20, (uint32_t)timer_isr, 0x8E);
 	idt_set_descriptor(0x21, (uint32_t)keyboard_isr, 0x8E);
+	idt_set_descriptor(0x90, (uint32_t)syscall_isr, 0x8E);
 	unsigned char a1 = inb(0x21);
 	unsigned char a2 = inb(0xA1);
 	outb(0x20, 0x11);

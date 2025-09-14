@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "thread.h"
 #include "filesystem.h"
+#include "sys_service.h"
 #include "usb.h"
 #include "smbios.h"
 #include "pci.h"
@@ -159,92 +160,62 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
-	struct epic_file filemd = {0};
-	struct file* graphicsfile = openfile(bootdrive, "assets/graphics");
-	if (!graphicsfile){
-		printf("failed to find graphics dir\n");
-		if (createfile(bootdrive, "assets/graphics", FILE_DIR)!=0)
-			printf("failed to create graphics dir in assets\n");
-		else
-			printf("successfully created graphics dir\n");
-		while (1){};
-	}
-	struct file* testfile = openfile(bootdrive, "assets/fonts/font.txt");
+	struct epic_file filemd = {0};	
+	struct file* testfile = sys_openfile(bootdrive, "assets/fonts/font.txt");
 	if (!testfile){
 		printf("test file not found\n");
 		while(1){};
 	}
-	struct file* shader = openfile(bootdrive, "assets/graphics/shader.txt");
-	if (!shader){
-		printf("failed to find shader file in graphics\n");
-		if (createfile(bootdrive, "assets/graphics/shader.txt", FILE_REGULAR)==0)
-			printf("successfully created shader file\n");
-		else
-			printf("failed to create shader file\n");
-		while (1){};
-	}
-	char* newshaderbuf = "shader buf";
-	unsigned int buflen = strlen(newshaderbuf)+1;
-	writefile(shader, (unsigned char*)newshaderbuf, buflen+1);
-	unsigned int shadersize = getfilesize(shader);
-	unsigned char* buf = (unsigned char*)kmalloc(shadersize);
-	if (!buf)
-		panic("failed to allocate memory for shader buf\n");
-	readfile(shader, (unsigned char*)buf);
-	printf("shader data: %s", buf);
-	kfree((void*)buf);		
-	closefile(shader);
-	struct file* graphicsdir = openfile(bootdrive, "assets");
-	if (!graphicsdir)
-		panic("graphics dir don't exist\n");
-	struct file* file1 = openfile(bootdrive, "test.txt");
-	struct file* file2 = openfile(bootdrive, "test2.txt");
-	unsigned int file1_size = getfilesize(file1);
-	unsigned int file2_size = getfilesize(file2);
-	unsigned int testfile_size = getfilesize(testfile);
+	struct file* file1 = sys_openfile(bootdrive, "test.txt");
+	struct file* file2 = sys_openfile(bootdrive, "test2.txt");
+	unsigned int file1_size = sys_getfilesize(file1);
+	unsigned int file2_size = sys_getfilesize(file2);
+	unsigned int testfile_size = sys_getfilesize(testfile);
 	if (!file1||!file2){
-		printf("file no exist\n");
-		while(1){};
+		panic("file no exist\n");
 	}
 	printf("took %dms to get file data | ", time_ms-last_ms);
 	last_ms = time_ms;
-	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
+	unsigned char* buffer = (unsigned char*)sys_kmalloc(file1_size);
 	if (!buffer){	
 		panic("failed to allocate memory for test 1 file buffer\n");
 	}
-	if (readfile(file1, buffer)!=0)
+	if (sys_readfile(file1, buffer)!=0)
 		panic("failed to read file1\n");
 	printf("contents: %s\n", buffer);
-	kfree((void*)buffer);
-	buffer = (unsigned char*)kmalloc(file2_size);
+	sys_kfree((void*)buffer);
+	buffer = (unsigned char*)sys_kmalloc(file2_size);
 	if (!buffer)
 		panic("failed to allocate memory for buffer for file 2\n");
-	if (readfile(file2, buffer)!=0){
+	if (sys_readfile(file2, buffer)!=0){
 		printf("failed to read file 2\n");
 		while (1){};	
 	}
 	printf("contents: %s\n", buffer);
-	kfree((void*)buffer);
-	buffer = (unsigned char*)kmalloc(testfile_size);
+	sys_kfree((void*)buffer);
+	buffer = (unsigned char*)sys_kmalloc(testfile_size);
 	if (!buffer)
 		panic("failed to allocate memory for buffer for fonts file\n");
-	if (readfile(testfile, buffer)!=0)
+	if (sys_readfile(testfile, buffer)!=0)
 		panic("failed to read from fonts file\n");
 	printf("fonts data hehe: %s\n", buffer);
 	kfree((void*)buffer);
 	last_ms = time_ms;
 	unsigned char* newbuf = "diddy party\n";
-	if (writefile(file2, newbuf, strlen(newbuf)+1)!=0){
+	if (sys_writefile(file2, newbuf, strlen(newbuf)+1)!=0){
 		printf("failed to write file contents\n");
 		__asm__ volatile("hlt");
 		while (1){};
 	}
 	unsigned char* test1buf = "test 1 new buf\n";
-	if (writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
+	if (sys_writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
 		panic("failed to write file 1 contents\n");
-	closefile(file1);
-	closefile(file2);
-	closefile(testfile);
+	sys_closefile(file1);
+	sys_closefile(file2);
+	sys_closefile(testfile);
+	sys_printf("test system printf %d\n", 5);
+	printf("normal printf\n");
+	sys_printf("another system printf\n");
 	set_multithreading(0);
 	while (1){};
 	return;	
