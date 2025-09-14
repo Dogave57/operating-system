@@ -1,4 +1,5 @@
 #include "video.h"
+#include "loader.h"
 #include "bootloader.h"
 #include "interrupt.h"
 #include "stdlib.h"
@@ -178,24 +179,7 @@ void kentry(void){
 	}
 	printf("took %dms to get file data | ", time_ms-last_ms);
 	last_ms = time_ms;
-	unsigned char* buffer = (unsigned char*)kmalloc(file1_size);
-	if (!buffer){	
-		panic("failed to allocate memory for test 1 file buffer\n");
-	}
-	if (readfile(file1, buffer)!=0)
-		panic("failed to read file1\n");
-	printf("contents: %s\n", buffer);
-	kfree((void*)buffer);
-	buffer = (unsigned char*)kmalloc(file2_size);
-	if (!buffer)
-		panic("failed to allocate memory for buffer for file 2\n");
-	if (readfile(file2, buffer)!=0){
-		printf("failed to read file 2\n");
-		while (1){};	
-	}
-	printf("contents: %s\n", buffer);
-	kfree((void*)buffer);
-	buffer = (unsigned char*)kmalloc(testfile_size);
+	unsigned char* buffer = (unsigned char*)kmalloc(testfile_size);
 	if (!buffer)
 		panic("failed to allocate memory for buffer for fonts file\n");
 	if (readfile(testfile, buffer)!=0)
@@ -212,6 +196,7 @@ void kentry(void){
 	unsigned char* test1buf = "test 1 new buf\n";
 	if (writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
 		panic("failed to write file 1 contents\n");
+	load_elf(bootdrive, "programs/shell.elf");
 	closefile(file1);
 	closefile(file2);
 	closefile(testfile);

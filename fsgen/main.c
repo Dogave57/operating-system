@@ -226,14 +226,16 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 	FILE* srcfile = fopen(src, "rb");
 	unsigned char* srcbuf = (unsigned char*)0x0;
 	unsigned int srcsize = 0;
-	unsigned int file_sectors = 0;
+	unsigned int file_clusters = 0;
 	if (!srcfile){
 		printf("failed to open source file %s (%s)\n", src, strerror(errno));
 		return -1;
 	}
 	fseek(srcfile,0,SEEK_END);
 	srcsize = (unsigned int)ftell(srcfile);
-	file_sectors = 1+((srcsize-1)/512);
+	if (!srcsize)
+		return -1;
+	file_clusters = 1+((srcsize-1)/4096);
 	rewind(srcfile);
 	if (!srcsize)
 		return 0;
@@ -252,21 +254,24 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 		free(srcbuf);
 		return -1;
 	}
+	printf("writing %s to %s\n", src, pepic_file->filename);
 	pepic_file->size = srcsize;
 	unsigned int last_cluster = 0;
-	for (unsigned int i = 0;i<file_sectors;i++){
+	printf("clusters: %d\n", file_clusters);
+	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int new_cluster = allocate_cluster(CLUSTER_FILEDATA);
 		if (!i)
-			pepic_file->data = new_cluster; 
-		else{
-			fat[last_cluster] = new_cluster;
-		}
+			pepic_file->data = new_cluster; 	
 		unsigned char* srcchunk = (unsigned char*)(srcbuf+(4096*i));
 		unsigned int dt = srcsize%4096;
 		unsigned int bytes_towrite = 4096;
-		if (i==file_sectors-1&&dt)
+		if (i==file_clusters-1&&dt)
 			bytes_towrite = dt;
-		memcpy((void*)(data+(new_cluster*4096)), (const void*)srcchunk, bytes_towrite);
+		printf("copying %d bytes over\n", bytes_towrite);
+		unsigned int clusteroff = new_cluster*4096;
+		printf("cluster offset: %d\n", clusteroff);
+		memcpy((void*)(data+clusteroff), (const void*)srcchunk, bytes_towrite);
+		printf("finished copyinh data over\n");
 		if (pepic_file->last_data_cluster)
 			fat[pepic_file->last_data_cluster] = new_cluster;
 		pepic_file->last_data_cluster = new_cluster;

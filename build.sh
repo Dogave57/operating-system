@@ -20,8 +20,14 @@ i686-elf-gcc -c -O0 -fno-pic pci.c $CFLAGS -o pci.o
 i686-elf-gcc -c -O0 -fno-pic smbios.c $CFLAGS -o smbios.o
 i686-elf-gcc -c -O0 -fno-pic dev.c $CFLAGS -o dev.o
 i686-elf-gcc -c -O0 -fno-pic sys_service.c $CFLAGS -o sys_service.o
-i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o sys_service.o sys_service_asm.o -o kernel.elf
+i686-elf-gcc -c -O0 -fno-pic loader.c $CFLAGS -o loader.o
+i686-elf-gcc -C -O0 -fno-pic shell.c $CFLAGS -c shell.o
+echo linking kernel
+i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o sys_service.o sys_service_asm.o loader.o -o kernel.elf
+echo linking shell program
+i686-elf-ld -T default.ld shell.o usb.o pci.o thread.o kernel.o timer.o isrs.o idt.o commands.o filesystem.o exception.o smbios.o dev.o loader.o video.o stdlib.o panic.o memory.o cursor.o -o shell.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
+cp shell.elf fsgen/files/programs/shell.elf
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
