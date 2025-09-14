@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "kernel.h"
 #include "video.h"
+#include "elf.h"
 #include "loader.h"
 int load_elf(unsigned int drive, char* filename){
 	if (!filename)
@@ -29,6 +30,22 @@ int load_elf(unsigned int drive, char* filename){
 	if (!ISELF(filebuf)){
 		printf("invalid elf binary\n");
 		return -1;
+	}
+	struct elf32_hdr* ehdr = (struct elf32_hdr*)(filebuf);
+	if (ehdr->type!=ET_EXEC){
+		printf("elf binary is not executable!\n");
+		return -1;
+	}
+	if (ehdr->machine!=EM_I386){
+		printf("elf binary is not x86\n");
+		return -1;
+	}
+	struct elf32_phdr* phdr_start = (struct elf32_phdr*)(ehdr+1);
+	printf("valid elf binary\n");
+	printf("program headers: %d\n", ehdr->ph_cnt);
+	for (unsigned int i = 0;i<ehdr->ph_cnt;i++){
+		struct elf32_phdr* phdr = (struct elf32_phdr*)(phdr_start+i);
+		printf("program header type: %d\n", phdr->p_type);
 	}
 	kfree((void*)filebuf);
 	return 0;

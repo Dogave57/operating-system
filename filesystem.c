@@ -222,7 +222,6 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 		}	
 		if (!pentry->inuse)
 			continue;
-		printf("%s", pentry->filename);
 		if (strcmp(pentry->filename, (char*)filename)!=0)
 			continue;
 		*pfilemd = *pentry;
@@ -339,7 +338,6 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 		printf("failed to allocate cluster");
 		return -1;
 	}
-	printf("created new file data pool cluster\n");
 	pclusterhdr->type = CLUSTER_FILEDATA;
 	pclusterhdr->cluster = new_cluster;
 	struct epic_file* pnewfile = (struct epic_file*)(pclusterhdr+1);
@@ -366,7 +364,6 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 		printf("failed to write new file metadata\n");
 		return -1;
 	}
-	printf("successfully created %s in dir %s\n", filename, pfilemd->filename);
 	return 0;
 }
 int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int file_offset){
@@ -501,7 +498,6 @@ struct file* openfile(unsigned int drive, char* filename){
 			newfile->drive = drive;
 			newfile->file_cluster = current_cluster;
 			newfile->file_offset = i*sizeof(struct epic_file);
-			printf("successfully found and created handle to %s in root\n", filename);
 			return newfile;
 		}
 		current_cluster = next_cluster;
@@ -580,13 +576,11 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 			if (!currentdir.inuse){
 			break;
 			}
-			printf("creating %s in %s", filename+link_start, currentdir.filename);
 			return epic_createfile_indir(drive, currentdir.file_cluster, currentdir.file_offset, filename+link_start, type);
 		}
 		if (filename[i]!='/')
 			continue;
 		filename[i] = 0;
-		printf("link: %s\n", filename+link_start);
 		if (currentdir.inuse){
 		if (epic_findfile_indir(drive, currentdir.file_cluster, currentdir.file_offset, filename+link_start, &currentdir)!=0){
 			printf("failed to find %s in %s while making file", filename+link_start, currentdir.filename);
@@ -602,7 +596,6 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 		filename[i] = '/';
 		link_start = i+1;	
 	}
-	printf("creating in root\n");
 	unsigned int filemd_sector = pfshdr->data_off+(pfshdr->last_filemd_cluster*8);
 	unsigned char sector_data[4096] = {0};
 	if (read_sectors(drive, filemd_sector, 8, (uint16_t*)sector_data, 256)!=0)
@@ -697,7 +690,6 @@ int readfile(struct file* pfile, unsigned char* buffer){
 			printf("failed to read data cluster\n");
 			return -1;
 		}
-		printf("reading %d bytes", toread);
 		memcpy((void*)(buffer+(4096*i)), (const void*)data, toread);
 		current_cluster = next_cluster;
 	}
