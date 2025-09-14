@@ -1,15 +1,20 @@
+%define BLARGS 0x2000
 BITS 16
 org 0x7C00
 section .text
 _start:
-cli
+mov sp, 0x7C00
+xor ax, ax
+mov ds, ax
+mov es, ax
+mov ss, ax
 mov bl, dl
-mov [0x2000], dl
+mov [BLARGS], dl
 mov si, bootmsg
 call print
 clc
 mov ah, 0x2
-mov al, 64
+mov al, 128
 xor ch, ch
 mov cl, 2
 xor dh, dh
@@ -45,31 +50,31 @@ mov word [0x9000+28], 0x0
 lgdt [0x9000+24]
 xor eax, eax
 cpuid
-mov dword [0x2000+4], ebx
-mov dword [0x2000+8], edx
-mov dword [0x2000+12], ecx
-mov byte [0x2000+16], 0
+mov dword [BLARGS+4], ebx
+mov dword [BLARGS+8], edx
+mov dword [BLARGS+12], ecx
+mov byte [BLARGS+16], 0
 mov eax, 0x80000002
 cpuid
-mov dword [0x2000+17], eax
-mov dword [0x2000+21], ebx
-mov dword [0x2000+25], ecx
-mov dword [0x2000+29], edx
+mov dword [BLARGS+17], eax
+mov dword [BLARGS+21], ebx
+mov dword [BLARGS+25], ecx
+mov dword [BLARGS+29], edx
 mov eax, 0x80000003
 cpuid
-mov dword [0x2000+33], eax
-mov dword [0x2000+37], ebx
-mov dword [0x2000+41], ecx
-mov dword [0x2000+45], edx
+mov dword [BLARGS+33], eax
+mov dword [BLARGS+37], ebx
+mov dword [BLARGS+41], ecx
+mov dword [BLARGS+45], edx
 mov eax, 0x80000004
 cpuid
-mov dword [0x2000+49], eax
-mov dword [0x2000+53], ebx
-mov dword [0x2000+57], ecx
-mov dword [0x2000+61], edx
-mov byte [0x2000+65], 0
-mov dword [0x2000+68], 0x8004
-mov dword [0x2000+72], 0
+mov dword [BLARGS+49], eax
+mov dword [BLARGS+53], ebx
+mov dword [BLARGS+57], ecx
+mov dword [BLARGS+61], edx
+mov byte [BLARGS+65], 0
+mov dword [BLARGS+68], 0x8004
+mov dword [BLARGS+72], 0
 xor ax, ax
 mov es, ax
 mov di, 0x8004
@@ -81,7 +86,7 @@ int 0x15
 jc bootfail_handler
 cmp eax, 0x534D4150
 jne bootfail_handler
-add dword [0x2000+72], 1
+add dword [BLARGS+72], 1
 cmp ebx, 0
 je memorymaploopend
 add di, 24

@@ -151,7 +151,6 @@ void kentry(void){
 	char* cpu_serial_name = smbios_get_string((void*)cpuinfo, cpuinfo->serial_name);
 	char* cpu_asset_tag_name = smbios_get_string((void*)cpuinfo, cpuinfo->asset_tag_name);
 	char* cpu_partnum_name = smbios_get_string((void*)cpuinfo, cpuinfo->partnum_name);
-	printf("cpu socket: %s\n", cpu_socket_name);
 	struct epic_fshdr fsinfo = {0};
 	if (epic_get_fsinfo(bootdrive, (struct epic_fshdr*)&fsinfo)!=0){
 		panic("invalid filesystem!\n");
@@ -175,6 +174,26 @@ void kentry(void){
 		printf("test file not found\n");
 		while(1){};
 	}
+	struct file* shader = openfile(bootdrive, "assets/graphics/shader.txt");
+	if (!shader){
+		printf("failed to find shader file in graphics\n");
+		if (createfile(bootdrive, "assets/graphics/shader.txt", FILE_REGULAR)==0)
+			printf("successfully created shader file\n");
+		else
+			printf("failed to create shader file\n");
+		while (1){};
+	}
+	char* newshaderbuf = "shader buf";
+	unsigned int buflen = strlen(newshaderbuf)+1;
+	writefile(shader, (unsigned char*)newshaderbuf, buflen+1);
+	unsigned int shadersize = getfilesize(shader);
+	unsigned char* buf = (unsigned char*)kmalloc(shadersize);
+	if (!buf)
+		panic("failed to allocate memory for shader buf\n");
+	readfile(shader, (unsigned char*)buf);
+	printf("shader data: %s", buf);
+	kfree((void*)buf);		
+	closefile(shader);
 	struct file* graphicsdir = openfile(bootdrive, "assets");
 	if (!graphicsdir)
 		panic("graphics dir don't exist\n");
@@ -183,7 +202,6 @@ void kentry(void){
 	unsigned int file1_size = getfilesize(file1);
 	unsigned int file2_size = getfilesize(file2);
 	unsigned int testfile_size = getfilesize(testfile);
-	printf("size: %d\n", testfile_size);
 	if (!file1||!file2){
 		printf("file no exist\n");
 		while(1){};
@@ -195,14 +213,16 @@ void kentry(void){
 		panic("failed to allocate memory for test 1 file buffer\n");
 	}
 	if (readfile(file1, buffer)!=0)
-		panic("failed to read file\n");
+		panic("failed to read file1\n");
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
 	buffer = (unsigned char*)kmalloc(file2_size);
 	if (!buffer)
 		panic("failed to allocate memory for buffer for file 2\n");
-	if (readfile(file2, buffer)!=0)
-		panic("failed to read file\n");
+	if (readfile(file2, buffer)!=0){
+		printf("failed to read file 2\n");
+		while (1){};	
+	}
 	printf("contents: %s\n", buffer);
 	kfree((void*)buffer);
 	buffer = (unsigned char*)kmalloc(testfile_size);

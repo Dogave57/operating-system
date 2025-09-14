@@ -20,7 +20,7 @@ i686-elf-gcc -c -O0 -fno-pic smbios.c $CFLAGS -o smbios.o
 i686-elf-gcc -c -O0 -fno-pic dev.c $CFLAGS -o dev.o
 i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
-truncate -s 32768 kernel.bin
+truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
 sudo cat os.img > drive.img

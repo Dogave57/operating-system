@@ -58,7 +58,6 @@ int findfile_incluster(unsigned int cluster, const char* filename, struct epic_f
 	unsigned int max_files = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	for (unsigned int i = 0;i<max_files;i++){
 		struct epic_file* pfile_entry = (struct epic_file*)(pfilelist+i);
-		printf("found %s in %s when looking in cluster %d\n", pfile_entry->filename, filename, cluster);
 		if (!pfile_entry->inuse)
 			continue;
 		if (strcmp(pfile_entry->filename, filename)!=0)

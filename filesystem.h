@@ -67,6 +67,7 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 int epic_findfile_inroot(unsigned int drive, char* filename, struct epic_file* pfilemd);
 int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, struct epic_file* pfilemd);
 int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, enum fileType type);
+int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int file_offset);
 struct file* openfile(unsigned int drive, char* filename);
 struct file* opendir(unsigned int drive, char* dirname);
 int renamefile(struct file* pfile, char* newname);
