@@ -36,7 +36,7 @@ struct epic_clusterhdr{
 }__attribute__((packed));
 struct epic_file{
 	enum fileType type;
-	char filename[24];
+	char filename[16];
 	unsigned int size;
 	unsigned int data;
 	unsigned int last_data_cluster;
@@ -45,8 +45,8 @@ struct epic_file{
 	unsigned int inuse;
 	unsigned int parent_cluster;
 	unsigned int parent_offset;
-	unsigned char reserved[4];
-}__attribute__((packed));
+	unsigned char reserved[12];
+}__attribute__((aligned(16)));
 struct file{
 	enum fsType fstype;
 	enum fileType filetype;

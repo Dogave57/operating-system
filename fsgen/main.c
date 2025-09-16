@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "filesystem.h"
+#define align_up(val, align)((val+align-1)& ~(align-1))
 char* maindir = (char*)0x0;
 size_t maindir_len = 0;
 struct dirent* dirent = (struct dirent*)0x0;
@@ -102,7 +103,7 @@ int createfile_incluster(unsigned int cluster, struct epic_file** pfiledata, con
 		return -1;
 	unsigned int file_entries = (4096-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned char* pclusterdata = data+(cluster*4096);
-	struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)pclusterhdr;
+	struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)pclusterdata;
 	struct epic_file* pfilelist = (struct epic_file*)(pclusterhdr+1);
 	if (pclusterhdr->type==CLUSTER_INVALID)
 		return -1;
@@ -140,6 +141,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 		}
 		return 0;
 	}
+	printf("allocating cluster for file metadata\n");
 	unsigned int new_cluster = allocate_cluster(CLUSTER_FILEDATA);
 	if (!new_cluster)
 		return -1;
@@ -149,6 +151,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 		fat[pdir->last_data_cluster] = new_cluster;
 	pdir->last_data_cluster = new_cluster;
 	pdir->size+=4096;
+	printf("creating file in cluster\n");
 	return createfile_incluster(new_cluster, pfiledata, filename, type);
 }
 int createfile(const char* filename, struct epic_file** pfiledata, enum fileType type){
@@ -239,7 +242,7 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 	rewind(srcfile);
 	if (!srcsize)
 		return 0;
-	srcbuf = (unsigned char*)malloc(srcsize+4096-(srcsize%4096));
+	srcbuf = (unsigned char*)malloc(align_up(srcsize+4096-(srcsize%4096), 16));
 	if (!srcbuf){
 		printf("failed to allocate memory for source file (%s)\n", strerror(errno));
 		fclose(srcfile);
