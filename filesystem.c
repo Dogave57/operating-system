@@ -140,7 +140,7 @@ int epic_freecluster(unsigned int drive, unsigned int cluster){
 	struct epic_fshdr fsinfo = {0};
 	if (epic_get_fsinfo(drive,&fsinfo)!=0)
 		return -1;
-	unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((cluster*4)/512);
+	unsigned int cluster_sector = FS_RESERVED_SECTORS+8+((cluster*4)/512);
 	unsigned int cluster_data[128] = {0};
 	unsigned char freelist_data[512] = {0};
 	unsigned int free_entrysector = fsinfo.freelist_off+(cluster/512);
@@ -158,7 +158,7 @@ int epic_freecluster(unsigned int drive, unsigned int cluster){
 	return write_sectors(drive, free_entrysector, 1, (uint16_t*)freelist_data, 256);
 }
 int epic_writecluster(unsigned int drive, unsigned int cluster, unsigned int data){
-	unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((cluster*4)/512);
+	unsigned int cluster_sector = FS_RESERVED_SECTORS+8+((cluster*4)/512);
 	unsigned int cluster_data[128] = {0};
 	unsigned int cluster_index = cluster%512;
 	if (read_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 256)!=0)
@@ -167,7 +167,7 @@ int epic_writecluster(unsigned int drive, unsigned int cluster, unsigned int dat
 	return write_sectors(drive, cluster_sector, 8, (uint16_t*)cluster_data, 256);
 }
 int epic_readcluster(unsigned int drive, unsigned int cluster, unsigned int* pdata){
-	unsigned int cluster_sector = FS_RESERVED_SECTORS+1+((cluster*4)/512);
+	unsigned int cluster_sector = FS_RESERVED_SECTORS+8+((cluster*4)/512);
 	unsigned int cluster_data[128] = {0};
 	unsigned int cluster_index = cluster%512;
 	if (read_sectors(drive, cluster_sector, 1, (uint16_t*)cluster_data, 256)!=0)
@@ -678,7 +678,11 @@ int readfile(struct file* pfile, unsigned char* buffer){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(pfile->drive, current_cluster, &next_cluster)!=0){
 			panic("failed to read next cluster\n");
-			return -1;	
+			return -1;
+		}
+		if (!next_cluster){
+			printf("failed to read next cluster!\n");
+			return -1;
 		}
 		unsigned int toread = 4096;
 		unsigned int dt = pfdata->size%4096;

@@ -196,6 +196,7 @@ void kentry(void){
 	unsigned char* test1buf = "test 1 new buf\n";
 	if (writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
 		panic("failed to write file 1 contents\n");
+	while (1){};
 	load_elf(bootdrive, "programs/shell.elf");
 	closefile(file1);
 	closefile(file2);

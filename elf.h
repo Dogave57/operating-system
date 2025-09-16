@@ -3,6 +3,9 @@
 #include <stdint.h>
 #define ISELF(buf)((*(buf)==0x7F)&&(*(buf+1)=='E')&&(*(buf+2)=='L')&&(*(buf+3)=='F'))
 #define EM_I386 3
+#define PT_LOAD 1
+#define SHT_REL 9
+#define SHT_RELA 4
 enum elfType{
 	ET_NONE = 0,	
 	ET_REL = 1,
@@ -42,6 +45,7 @@ struct elf32_phdr{
 	uint32_t p_va;
 	uint32_t p_pa;
 	uint32_t p_filesz;
+	uint32_t p_memsz;
 	uint32_t p_flags;
 	uint32_t p_align;
 };

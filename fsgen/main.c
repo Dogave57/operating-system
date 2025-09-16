@@ -263,21 +263,25 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 	printf("clusters: %d\n", file_clusters);
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int new_cluster = allocate_cluster(CLUSTER_FILEDATA);
-		if (!i)
-			pepic_file->data = new_cluster; 	
+		if (!new_cluster){
+			printf("failed to create new cluster\n");
+			break;
+		}
+		if (!pepic_file->data)
+			pepic_file->data = new_cluster;
 		unsigned char* srcchunk = (unsigned char*)(srcbuf+(4096*i));
 		unsigned int dt = srcsize%4096;
 		unsigned int bytes_towrite = 4096;
 		if (i==file_clusters-1&&dt)
 			bytes_towrite = dt;
-		printf("copying %d bytes over\n", bytes_towrite);
+		printf("writing %d bytes to cluster %d\n", bytes_towrite, new_cluster);
 		unsigned int clusteroff = new_cluster*4096;
 		printf("cluster offset: %d\n", clusteroff);
 		memcpy((void*)(data+clusteroff), (const void*)srcchunk, bytes_towrite);
-		printf("finished copyinh data over\n");
-		if (pepic_file->last_data_cluster)
-			fat[pepic_file->last_data_cluster] = new_cluster;
+		printf("finished copying data over\n");
 		pepic_file->last_data_cluster = new_cluster;
+		if (last_cluster!=0)
+			fat[last_cluster] = new_cluster;
 		last_cluster = new_cluster;
 	}
 	free(srcbuf);
