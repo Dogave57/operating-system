@@ -11,7 +11,6 @@
 #include "memory.h"
 #include "thread.h"
 #include "filesystem.h"
-#include "sys_service.h"
 #include "usb.h"
 #include "smbios.h"
 #include "pci.h"
@@ -60,10 +59,10 @@ void kentry(void){
 	printf("drive sectors: %d\n", sectors.low);
 	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, NULL);
 	if (!thread)
-		panic("failed to create test thread\n");
+		panic("failed to created test thread\n");
 	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, NULL);
 	if (!thread2)
-		panic("failed to create test thread 2\n");
+		panic("failed to created test thread 2\n");
 	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, NULL);
 	for (unsigned int bus = 0;bus<256;bus++){
 		for (unsigned int dev = 0;dev<32;dev++){
@@ -196,7 +195,6 @@ void kentry(void){
 	unsigned char* test1buf = "test 1 new buf\n";
 	if (writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
 		panic("failed to write file 1 contents\n");
-	while (1){};
 	load_elf(bootdrive, "programs/shell.elf");
 	closefile(file1);
 	closefile(file2);

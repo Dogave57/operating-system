@@ -3,6 +3,7 @@
 #include "kernel.h"
 #include "video.h"
 #include "elf.h"
+#include "reb.h"
 #include "loader.h"
 int load_elf(unsigned int drive, char* filename){
 	if (!filename)
@@ -28,66 +29,85 @@ int load_elf(unsigned int drive, char* filename){
 	}
 	closefile(pfile);
 	if (!ISELF(filebuf)){
-		printf("invalid elf binary\n");
+		printf("not a valid ELF binary\n");
 		return -1;
 	}
-	struct elf32_hdr* ehdr = (struct elf32_hdr*)(filebuf);
-	if (ehdr->type!=ET_EXEC){
-		printf("elf binary is not executable!\n");
+	printf("valid ELF binary\n");
+	struct elf32_hdr* ehdr = (struct elf32_hdr*)filebuf;
+	if (ehdr->type!=ET_DYN){
+		printf("non-dynamic elf binary!\n");
 		return -1;
 	}
-	if (ehdr->machine!=EM_I386){
-		printf("elf binary is not x86\n");
-		return -1;
-	}
-	struct elf32_phdr* phdr_start = (struct elf32_phdr*)(filebuf+ehdr->ph_off);
 	struct elf32_shdr* shdr_start = (struct elf32_shdr*)(filebuf+ehdr->sh_off);
+	struct elf32_phdr* phdr_start = (struct elf32_phdr*)(filebuf+ehdr->ph_off);
 	unsigned int imagesize = 0;
-	printf("valid elf binary\n");
-	printf("program headers: %d\n", ehdr->ph_cnt);
-	for (unsigned int i = 0;i<ehdr->ph_cnt;i++){
-		struct elf32_phdr* phdr = (struct elf32_phdr*)(phdr_start+i);
-		if (phdr->p_type!=PT_LOAD)
+	unsigned int imagedt = 0;
+	for (unsigned int i = 0;i<ehdr->sh_cnt;i++){
+		struct elf32_phdr* pentry = phdr_start+i;
+		if (pentry->p_type!=PT_LOAD)
 			continue;
-		printf("program header type: %d\n", phdr->p_type);
-		imagesize+=phdr->p_memsz;
+		imagesize+=pentry->p_memsz;
 	}
-	printf("image size: %d\n", imagesize);
 	unsigned char* pimage = (unsigned char*)kmalloc(imagesize);
 	if (!pimage){
-		printf("failed to allocate memory for image\n");
 		kfree((void*)filebuf);
 		return -1;
-	}	
-	for (unsigned int i = 0;i<ehdr->ph_cnt;i++){
-		struct elf32_phdr* phdr = (struct elf32_phdr*)(phdr_start+i);
-		if (phdr->p_type!=PT_LOAD)
-			continue;
-		printf("copying segment with file offset %d and va %d\n", phdr->p_offset, phdr->p_va);
-		memcpy((void*)(pimage+phdr->p_va), (const void*)(filebuf+phdr->p_offset), phdr->p_filesz);
 	}
-	printf("sh offset: %d\n", ehdr->sh_off);
-	for (unsigned int i = 0;i<ehdr->sh_cnt;i++){
-		struct elf32_shdr* shdr = (struct elf32_shdr*)(shdr_start+i);
-		if (shdr->sh_type!=SHT_REL&&shdr->sh_type!=SHT_RELA)
+	unsigned int prefered_base = 0;
+	for (unsigned int i = 0;i<ehdr->ph_cnt;i++){
+		struct elf32_phdr* pentry = phdr_start+i;
+		if (pentry->p_type!=PT_LOAD)
 			continue;
-		printf("reloc entry found");
+		memcpy((void*)(pimage+pentry->p_va), (const void*)(filebuf+pentry->p_offset), pentry->p_filesz);
+	}
+	imagedt = (unsigned int)pimage-prefered_base;
+	for (unsigned int i = 0;i<ehdr->sh_cnt;i++){
+		struct elf32_shdr* pentry = shdr_start+i;
+		if (pentry->sh_type!=SHT_REL&&pentry->sh_type!=SHT_RELA)
+			continue;
 		unsigned int entrysize = 0;
-		unsigned int entrycnt = 0;
-		if (shdr->sh_type==SHT_REL)
+		if (pentry->sh_type==SHT_REL)
 			entrysize = sizeof(struct elf32_rel);
 		else
 			entrysize = sizeof(struct elf32_rela);
-		entrycnt = shdr->sh_size/entrysize;
+		unsigned int entrycnt = pentry->sh_size/entrysize;
 		for (unsigned int s = 0;s<entrycnt;s++){
-		struct elf32_rel* pentry = (struct elf32_rel*)((pfile+shdr->sh_offset)+(s*entrysize));
-		printf("reloc entry offset: %d", pentry->r_offset);	
+		struct elf32_rel* preldata = (struct elf32_rel*)(filebuf+pentry->sh_offset+(s*entrysize));
+		unsigned int* ppatch = (unsigned int*)(pimage+preldata->r_offset);
+		*ppatch+=imagedt;
 		}
 	}
-	unsigned char* pentry = pimage+ehdr->entry;
-	programEntry entry = (programEntry)(pentry);
 	kfree((void*)filebuf);
+	programEntry entry = (programEntry)(pimage+ehdr->entry);
 	entry();
-	printf("execution finished\n");
+	kfree((void*)pimage);
+	return 0;
+}
+int load_bin(unsigned int drive, char* filename){
+	if (!filename)
+		return -1;
+	struct file* pfile = openfile(drive, filename);
+	if (!pfile)
+		return -1;
+	unsigned int filesize = getfilesize(pfile);
+	if (!filesize){
+		closefile(pfile);
+		return -1;
+	}
+	unsigned char* pimage = (unsigned char*)kmalloc(filesize);
+	if (!pimage){
+		closefile(pfile);
+		return -1;
+	}
+	if (readfile(pfile, pimage)!=0){
+		closefile(pfile);
+		return -1;
+	}
+	closefile(pfile);
+	programEntry entry = (programEntry)pimage;
+	printf("executing program\n");
+	entry();
+	printf("program execution finished\n");
+	kfree((void*)pimage);
 	return 0;
 }

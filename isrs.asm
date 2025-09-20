@@ -1,16 +1,3 @@
-%define SYSV_PRINTF 1
-%define SYSV_PRINT 2
-%define SYSV_PUTCHAR 3
-%define SYSV_OPENFILE 4
-%define SYSV_CREATEFILE 5
-%define SYSV_DELETEFILE 6
-%define SYSV_READFILE 7
-%define SYSV_WRITEFILE 8
-%define SYSV_RENAMEFILE 9
-%define SYSV_GETFILESIZE 10
-%define SYSV_CLOSEFILE 11
-%define SYSV_KMALLOC 12
-%define SYSV_KFREE 13
 global default_master_isr
 global default_slave_isr
 global timer_isr
@@ -387,20 +374,19 @@ call exception_handler
 iret
 syscall_isr:
 cli
-mov dword [eax+SYSV_PRINTF], printf
-mov dword [eax+SYSV_PRINT], print
-mov dword [eax+SYSV_PUTCHAR], putchar
-mov dword [eax+SYSV_OPENFILE], openfile
-mov dword [eax+SYSV_CLOSEFILE], closefile
-mov dword [eax+SYSV_WRITEFILE], writefile
-mov dword [eax+SYSV_READFILE], readfile
-mov dword [eax+SYSV_DELETEFILE], deletefile
-mov dword [eax+SYSV_CREATEFILE], createfile
-mov dword [eax+SYSV_GETFILESIZE], getfilesize
-mov dword [eax+SYSV_KMALLOC], kmalloc
-mov dword [eax+SYSV_KFREE], kfree
-mov dword [eax+SYSV_RENAMEFILE], renamefile
+sys_print:
+push ebx
+call print
+pop ebx
+jmp syscall_end
+sys_putchar:
+push ebx
+call putchar
+pop ebx
+jmp syscall_end
+syscall_end:
 sti
 iret
-msg db "eip: %p", 10
+msg db "eax: %p", 0
+intmsg db "interrupt called", 0
 db 0

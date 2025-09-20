@@ -1,0 +1,80 @@
+#include "filesystem.h"
+#include "stdlib.h"
+#include "kernel.h"
+#include "video.h"
+#include "elf.h"
+#include "reb.h"
+#include "loader.h"
+int load_elf(unsigned int drive, char* filename){
+	if (!filename)
+		return -1;
+	struct file* pfile = openfile(drive, filename);
+	if (!pfile)
+		return -1;
+	unsigned int filesize = getfilesize(pfile);
+	if (!filesize){
+		closefile(pfile);
+		return -1;
+	}
+	unsigned char* filebuf = (unsigned char*)kmalloc(filesize);
+	if (!filebuf){
+		printf("failed to allocate memory for file buffer\n");
+		closefile(pfile);
+		return -1;
+	}
+	if (readfile(pfile, filebuf)!=0){
+		printf("failed to read file into memory\n");
+		closefile(pfile);
+		return -1;	
+	}
+	if (!ISELF(filebuf)){
+		printf("not a valid ELF binary\n");
+		closefile(pfile);
+		return -1;
+	}
+	printf("valid ELF binary\n");
+	struct elf32_hdr* ehdr = (struct elf32_hdr*)filebuf;
+	if (ehdr->type!=ET_REL){
+		printf("non-relocatable elf binary!\n");
+		closefile(pfile);
+		return -1;
+	}
+	printf("ph entries: %d\n", ehdr->ph_cnt);
+	printf("sh entries: %d\n", ehdr->sh_cnt);
+	struct elf32_shdr* shdr_start = (struct elf32_shdr*)(filebuf+ehdr->sh_off);
+	unsigned int prefered_base = 0x0;
+	unsigned int dt = (unsigned int)filebuf-(unsigned int)prefered_base;
+	unsigned char* pcode = (unsigned char*)(filebuf);
+	unsigned char* pstrtab = (unsigned char*)(filebuf);
+	for (unsigned int i = 0;i<ehdr->sh_cnt;i++){
+		struct elf32_shdr* pentry = shdr_start+i;
+		if (pentry->sh_type!=SHT_STRTAB)
+			continue;
+		pstrtab = (unsigned char*)(filebuf+pentry->sh_addr);
+		break;
+	}
+	for (unsigned int i = 0;i<ehdr->sh_cnt;i++){
+		struct elf32_shdr* pentry = shdr_start+i;
+		printf("sect name: %s", pstrtab+pentry->sh_name);
+		if (pentry->sh_type!=SHT_REL&&pentry->sh_type!=SHT_RELA)
+			continue;
+		unsigned int entry_size = 0;
+		unsigned int entry_cnt = 0;
+		if (pentry->sh_type==SHT_REL)
+			entry_size = sizeof(struct elf32_rel);
+		else
+			entry_size = sizeof(struct elf32_rela);
+		entry_cnt = pentry->sh_size/entry_size;
+		printf("reloc entry found with %d entries\n", entry_cnt);
+		for (unsigned int s = 0;s<entry_cnt;s++){
+		struct elf32_rel* prelocdata = (struct elf32_rel*)(filebuf+pentry->sh_offset+(entry_size*s));
+		*(unsigned int*)(filebuf+prelocdata->r_offset) += dt;
+		}
+	}
+	printf("entry: %d\n", ehdr->entry);
+	programEntry pentry = (programEntry)(pcode+ehdr->entry);
+	pentry();
+	printf("program finished execution\n");
+	closefile(pfile);
+	return 0;
+}

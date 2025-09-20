@@ -276,12 +276,15 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 			bytes_towrite = dt;
 		printf("writing %d bytes to cluster %d\n", bytes_towrite, new_cluster);
 		unsigned int clusteroff = new_cluster*4096;
+		printf("new cluster: %d\n", new_cluster);
 		printf("cluster offset: %d\n", clusteroff);
 		memcpy((void*)(data+clusteroff), (const void*)srcchunk, bytes_towrite);
 		printf("finished copying data over\n");
 		pepic_file->last_data_cluster = new_cluster;
-		if (last_cluster!=0)
+		if (last_cluster!=0){
 			fat[last_cluster] = new_cluster;
+			printf("cluster after %d is %d\n", last_cluster, new_cluster);
+		}
 		last_cluster = new_cluster;
 	}
 	free(srcbuf);
@@ -373,7 +376,7 @@ int main(int argc, char** argv){
 	data = (unsigned char*)(fsbuf+512+hdr->fat_size+hdr->freelist_size);
 	freelist = (unsigned char*)(fsbuf+512+hdr->fat_size);
 	fat_entries = (hdr->freelist_size);
-	memset((void*)(fsbuf+512), 0, hdr->fat_size);
+	memset((void*)(fat), 0, hdr->fat_size);
 	memset((void*)(freelist), 0, hdr->freelist_size);
 	adddir(maindir);
 	fat[hdr->fat_size/512] = EPICFS_EOC;

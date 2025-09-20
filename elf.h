@@ -6,10 +6,12 @@
 #define PT_LOAD 1
 #define SHT_REL 9
 #define SHT_RELA 4
+#define SHT_STRTAB 3
 enum elfType{
 	ET_NONE = 0,	
 	ET_REL = 1,
 	ET_EXEC = 2,
+	ET_DYN = 3,
 };
 struct elf32_hdr{
 	unsigned char ident[16];
