@@ -374,6 +374,11 @@ call exception_handler
 iret
 syscall_isr:
 cli
+cmp eax, 0
+je sys_putchar
+cmp eax, 1
+je sys_print
+jmp syscall_end
 sys_print:
 push ebx
 call print

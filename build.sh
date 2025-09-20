@@ -2,7 +2,7 @@ CFLAGS='-nostdlib -ffreestanding'
 LDFLAGS=''
 nasm -f bin bootloader.asm -o bootloader.bin
 nasm -f elf32 isrs.asm -o isrs.o
-nasm -f elf32 shell.asm -o shell.o
+nasm -f elf32 libsys.asm -o libsys.o
 i686-elf-gcc -c -O0 kernel.c $CFLAGS -T linker.ld -o kernel.o
 i686-elf-gcc -c -O0 commands.c $CFLAGS -o commands.o
 i686-elf-gcc -c -O0 video.c $CFLAGS -o video.o
@@ -20,10 +20,11 @@ i686-elf-gcc -c -O0 pci.c $CFLAGS -o pci.o
 i686-elf-gcc -c -O0 smbios.c $CFLAGS -o smbios.o
 i686-elf-gcc -c -O0 dev.c $CFLAGS -o dev.o
 i686-elf-gcc -c -O0 loader.c $CFLAGS -o loader.o
+i686-elf-gcc -c -O0 shell.c $CFLAGS -o shell.o
 echo linking kernel
 i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o loader.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
-i686-elf-ld -pie shell.o -o shell.elf
+i686-elf-ld -pie shell.o libsys.o -o shell.elf
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img

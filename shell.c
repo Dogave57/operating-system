@@ -1,5 +1,5 @@
-#include "stdlib.h"
-#include "video.h"
-int main(void){
+#include "libsys.h"
+int _start(void){
+	print("dynamic interactive shell loaded!\n");	
 	return 0;
 }
