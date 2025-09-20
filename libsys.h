@@ -13,4 +13,6 @@ unsigned int sys_getfilesize(struct file* pfile);
 int sys_writefile(struct file* pfile, unsigned char* buf, unsigned int size);
 int sys_readfile(struct file* pfile, unsigned char* buf);
 int sys_getbootdrive(void);
+void sys_clear(void);
+char sys_getchar(void);
 #endif

@@ -2,9 +2,10 @@
 #include "filesystem.h"
 #include "libsys.h"
 int _start(void){
+	sys_clear();
 	unsigned int bootdrive = sys_getbootdrive();
 	sys_print("dynamic interactive shell loaded!\n");	
-	unsigned char* testalloc = sys_kmalloc(64);
+/*	unsigned char* testalloc = sys_kmalloc(64);
 	printf("allocated dynamic memory at %p\n", testalloc);
 	sys_kfree((void*)testalloc);
 	struct file* testfile = sys_openfile(bootdrive, "assets/fonts/font.txt");
@@ -26,6 +27,11 @@ int _start(void){
 	}
 	printf("file buf: %s\n", filebuf);
 	sys_closefile(testfile);
-	sys_kfree((void*)filebuf);
+	sys_kfree((void*)filebuf);*/
+	char input[256] = {0};
+	while (1){
+		scan(input, sizeof(input)-1, '\n');
+		printf("input: %s\n", input);
+	}
 	return 0;
 }

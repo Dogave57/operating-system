@@ -1,5 +1,6 @@
 #ifndef _KEYBOARD
 #define _KEYBOARD
+extern char current_char;
 extern unsigned char shiftPressed;
 extern unsigned char capsPressed;
 static const char scantoascii[]={
@@ -89,4 +90,5 @@ static const char scantoascii[]={
 [0x57] = 0,//F11
 [0x58] = 0,//F12
 };
+char getchar(void);
 #endif

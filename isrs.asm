@@ -33,6 +33,7 @@ extern printf
 extern print
 extern putchar
 extern puthex
+extern clear
 extern openfile
 extern createfile
 extern deletefile
@@ -45,6 +46,7 @@ extern kmalloc
 extern kfree
 extern exception_handler
 extern getbootdrive
+extern getchar
 _start:
 
 ret
@@ -79,11 +81,9 @@ iret
 keyboard_isr:
 cli
 call keyboard_interrupt
-pusha
 mov al, 0x20
 mov dx, 0x20
 out dx, al
-popa
 sti
 iret
 isr0:
@@ -375,103 +375,41 @@ push eax
 call exception_handler
 iret
 syscall_isr:
-cli
-cmp eax, 0
-je sys_putchar
-cmp eax, 1
-je sys_print
-cmp eax, 2
-je sys_puthex
-cmp eax, 3
-je sys_kmalloc
-cmp eax, 4
-je sys_kfree
-cmp eax, 5
-je sys_openfile
-cmp eax, 6
-je sys_closefile
-cmp eax, 7
-je sys_deletefile
-cmp eax, 8
-je sys_getfilesize
-cmp eax, 9
-je sys_writefile
-cmp eax, 10
-je sys_readfile
-cmp eax, 11
-je sys_getbootdrive
+sti
+add esp, 12
+xor eax, eax
+cmp edx, 0
+je putchar
+cmp edx, 1
+je print
+cmp edx, 2
+je puthex
+cmp edx, 3
+je kmalloc
+cmp edx, 4
+je kfree
+cmp edx, 5
+je openfile
+cmp edx, 6
+je closefile
+cmp edx, 7
+je deletefile
+cmp edx, 8
+je getfilesize
+cmp edx, 9
+je writefile
+cmp edx, 10
+je readfile
+cmp edx, 11
+je getbootdrive
+cmp edx, 12
+je clear
+cmp edx, 13
+je getchar
 jmp syscall_end
 sys_putchar:
-push ebx
 call putchar
-pop ebx
-jmp syscall_end
-sys_print:
-push ebx
-call print
-pop ebx
-jmp syscall_end
-sys_puthex:
-push ebx
-push ecx
-call puthex
-pop ecx
-pop ebx
-jmp syscall_end
-sys_kmalloc:
-push ebx
-call kmalloc
-pop ebx
-jmp syscall_end
-sys_kfree:
-push ebx
-call kfree
-pop ebx
-jmp syscall_end
-sys_openfile:
-push ecx
-push ebx
-call openfile
-pop ebx
-pop ecx
-jmp syscall_end
-sys_closefile:
-push ebx
-call closefile
-pop ebx
-jmp syscall_end
-sys_deletefile:
-push ebx
-call deletefile
-pop ebx
-jmp syscall_end
-sys_getfilesize:
-push ebx
-call getfilesize
-pop ebx
-jmp syscall_end
-sys_writefile:
-push edx
-push ecx
-push ebx
-call writefile
-pop ebx
-pop ecx
-pop edx
-jmp syscall_end
-sys_readfile:
-push ecx
-push ebx
-call readfile
-pop ebx
-pop ecx
-jmp syscall_end
-sys_getbootdrive:
-call getbootdrive
 jmp syscall_end
 syscall_end:
-sti
-iret
+ret
 msg db "eax: %p", 0
-intmsg db "interrupt called", 0
-db 0

@@ -15,9 +15,9 @@
 #include "smbios.h"
 #include "pci.h"
 #include "kernel.h"
+char current_char = 0;
 unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
-char cmdline[256] = {0};
 size_t cmdlen = 0;
 void test_thread(void* arg);
 void test_thread2(void* arg);
@@ -240,7 +240,6 @@ void keyboard_interrupt(void){
 			break;
 		case 0x2A:
 		case 0x36:
-		//	__asm__ volatile("int $12");
 			shiftPressed = 1;	
 		return;
 		case 0xAA:
@@ -255,9 +254,16 @@ void keyboard_interrupt(void){
 		return;
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
-	putchar(ascii);	
-//	__asm__ volatile("int $12");
+	putchar(ascii);
+	current_char = ascii;
 	return;
+}
+char getchar(void){
+	if (!current_char)
+		return 0;
+	char ch = current_char;
+	current_char = 0;
+	return ch;
 }
 void reboot(void){
 	__asm__ volatile("cli");

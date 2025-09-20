@@ -14,4 +14,5 @@ char toLower(char ch);
 void* kmalloc(size_t size);
 int kfree(void* data);
 int printf(const char* fmt, ...);
+int scan(char* buf, unsigned int bufmax, unsigned char end);
 #endif

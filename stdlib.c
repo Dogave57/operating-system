@@ -232,3 +232,20 @@ void printf(const char* fmt, ...){
 	}
 	return;
 }
+int scan(char* buffer, unsigned int bufmax, unsigned char end){
+	if (!buffer||!bufmax)
+		return -1;
+	for (unsigned int i = 0;i<bufmax;){
+		unsigned char ch = 0;
+		while (!ch)
+			ch = sys_getchar();
+		if (ch==end){
+			buffer[i] = 0;
+			return 0;
+		}
+		buffer[i] = ch;
+		i++;
+	}
+	buffer[bufmax-1] = 0;
+	return 0;
+}
