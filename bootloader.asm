@@ -3,6 +3,9 @@ BITS 16
 org 0x7C00
 section .text
 _start:
+xor ah, ah
+mov al, 0x03
+int 0x10
 mov sp, 0x7C00
 xor ax, ax
 mov ds, ax

@@ -22,7 +22,6 @@ enum vgaColor{
 	VGA_COLOR_BRIGHT_WHITE,
 };
 void print(const char* str);
-void printf(const char* fmt, ...);
 void putchar(char ch);
 void puthex(unsigned char hex, unsigned char lower);
 void clear();

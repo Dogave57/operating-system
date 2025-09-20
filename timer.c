@@ -3,6 +3,7 @@
 #include "kernel.h"
 #include "panic.h"
 #include "thread.h"
+#include "stdlib.h"
 #include "timer.h"
 unsigned int time_ms = 0;
 struct scheduler_task_info_t scheduler_info = {0};

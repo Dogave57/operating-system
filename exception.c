@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "video.h"
 #include "panic.h"
+#include "stdlib.h"
 #include "interrupt.h"
 #include "kernel.h"
 #include "exception.h"

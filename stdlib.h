@@ -13,4 +13,5 @@ char toUpper(char ch);
 char toLower(char ch);
 void* kmalloc(size_t size);
 int kfree(void* data);
+int printf(const char* fmt, ...);
 #endif
