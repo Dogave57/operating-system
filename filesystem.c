@@ -340,6 +340,7 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 		pfile->type = type;
 		pfile->file_cluster = current_cluster;
 		pfile->file_offset = s*sizeof(struct epic_file);
+		pfilemd->size+=sizeof(struct epic_file);
 		pfile->inuse = 1;
 		return epic_write_clusterdata(drive, current_cluster, clusterdata)&&epic_write_clusterdata(drive, dirmd_cluster, md_clusterdata);	
 		}
@@ -633,7 +634,7 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 	struct epic_file* fentries = (struct epic_file*)(sector_data+sizeof(struct epic_clusterhdr));
 	for (unsigned int i = 0;i<sizeof(sector_data)/sizeof(struct epic_file);i++){
 		struct epic_file* pfile = fentries+i;
-			if (pfile->inuse!=0)
+		if (pfile->inuse!=0)
 			continue;
 		strcpy(pfile->filename, filename);
 		pfile->inuse = 1;
@@ -642,6 +643,8 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 		pfile->data = 0;
 		pfile->file_cluster = pfshdr->last_filemd_cluster;
 		pfile->file_offset = i*sizeof(struct epic_file);
+		if (epic_set_fsinfo(drive, fshdr)!=0)
+			return -1;
 		return write_sectors(drive, filemd_sector, 8, (uint16_t*)sector_data, 256);
 	}
 	unsigned int current_cluster = 0;

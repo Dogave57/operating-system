@@ -70,19 +70,17 @@ void* kmalloc(size_t size){
 			continue;
 			}
 			unsigned int dt = pblock->datasize-size;
-	/*		if (dt){
-			struct heap_block* newblock = (struct heap_block*)((unsigned char*)(pblock+1)+size);
+			if (dt&&dt>sizeof(struct heap_block)){
+			pblock->datasize = size;
+			struct heap_block* newblock = (struct heap_block*)((unsigned char*)(pblock+1)+pblock->datasize);
 			pblock->flink->blink = newblock;
 			pblock->flink = newblock;
 			newblock->blink = newblock;
 			newblock->inuse = 0;
-			newblock->datasize = dt;
+			newblock->datasize = dt-sizeof(struct heap_block);
 			}else{
 			heap_data->freeblock_cnt--;
-			}*/
-			//TODO:
-			//fix corrupted heap allocation when moving new size to size field in block
-			heap_data->freeblock_cnt--;
+			}
 			pblock->inuse = 1;
 			return (void*)(pblock+1);
 		}	

@@ -155,7 +155,7 @@ void shell_lf(char* cmd, unsigned int cmdlen){
 	}
 	for (unsigned int i = 0;i<pfile_entries;i++){
 		struct fileinfo* pentry = pfilelist+i;
-		printf("%s\n", pentry->filename);
+		printf("%s | %d bytes\n", pentry->filename, pentry->filesize);
 	}
 	sys_kfree((void*)pfilelist);
 	sys_closefile(pdir);
