@@ -19,5 +19,7 @@ void sys_clear(void);
 char sys_getchar(void);
 void sys_set_input_mode(enum inputMode mode);
 void sys_set_console_color(enum vgaColor fg, enum vgaColor bg);
-void sys_loadelf(unsigned int drive, char* filename);
+int sys_loadelf(unsigned int drive, char* filename);
+int sys_getfileinfo(struct file* pfile, struct fileinfo* pinfo);
+int sys_createfile(unsigned int drive, char* filename);
 #endif

@@ -56,6 +56,11 @@ struct file{
 	unsigned int file_offset;
 	unsigned char reserved[16];
 };
+struct fileinfo{
+	char filename[16];
+	unsigned int filesize;
+	unsigned int drive;
+};
 int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPersector);
 int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPersector);
 int drive_getinfo(unsigned int drive, uint16_t* info);
@@ -79,6 +84,7 @@ int deletefile(struct file* pfile);
 int readfile(struct file* pfile, unsigned char* buffer);
 int writefile(struct file* pfile, unsigned char* buffer, unsigned int size);
 unsigned int getfilesize(struct file* pfile);
+int getfileinfo(struct file* pfile, struct fileinfo* pinfo);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

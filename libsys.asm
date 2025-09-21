@@ -15,6 +15,8 @@ global sys_getchar
 global sys_set_input_mode
 global sys_set_console_color
 global sys_loadelf
+global sys_getfileinfo
+global sys_createfile
 sys_putchar:
 xor edx, edx
 int 90h
@@ -81,5 +83,13 @@ int 90h
 ret
 sys_loadelf:
 mov edx, 16
+int 90h
+ret
+sys_getfileinfo:
+mov edx, 17
+int 90h
+ret
+sys_createfile:
+mov edx, 18
 int 90h
 ret

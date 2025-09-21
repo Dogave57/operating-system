@@ -50,6 +50,7 @@ extern getchar
 extern set_input_mode
 extern vga_set_color
 extern load_elf
+extern getfileinfo
 _start:
 
 ret
@@ -415,7 +416,10 @@ cmp edx, 15
 je vga_set_color
 cmp edx, 16
 je load_elf
+cmp edx, 17
+je getfileinfo
+cmp edx, 18
+je createfile
 jmp syscall_end
 syscall_end:
 ret
-msg db "eax: %p", 0
