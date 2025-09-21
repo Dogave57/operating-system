@@ -17,6 +17,7 @@ global sys_set_console_color
 global sys_loadelf
 global sys_getfileinfo
 global sys_createfile
+global sys_getfilelist
 sys_putchar:
 xor edx, edx
 int 90h
@@ -91,5 +92,9 @@ int 90h
 ret
 sys_createfile:
 mov edx, 18
+int 90h
+ret
+sys_getfilelist:
+mov edx, 19
 int 90h
 ret

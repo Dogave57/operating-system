@@ -51,6 +51,7 @@ extern set_input_mode
 extern vga_set_color
 extern load_elf
 extern getfileinfo
+extern getfilelist
 _start:
 
 ret
@@ -420,6 +421,8 @@ cmp edx, 17
 je getfileinfo
 cmp edx, 18
 je createfile
+cmp edx, 19
+je getfilelist
 jmp syscall_end
 syscall_end:
 ret

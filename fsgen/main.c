@@ -40,6 +40,8 @@ unsigned int allocate_cluster(enum clusterType type){
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)pclusterdata;
 		pclusterhdr->type = type;
 		pclusterhdr->cluster = i;
+		if (i>hdr->last_cluster)
+			hdr->last_cluster = i;
 		return i;
 	}
 	printf("no entries\n");

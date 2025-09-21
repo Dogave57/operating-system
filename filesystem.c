@@ -107,6 +107,11 @@ int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 	*pinfo = *(struct epic_fshdr*)data;
 	return 0;
 }
+int epic_set_fsinfo(unsigned int drive, struct epic_fshdr fsinfo){
+	unsigned char data[4096] = {0};
+	*(struct epic_fshdr*)data = fsinfo;
+	return write_sectors(drive, 128, 8, (uint16_t*)data, 256);
+}
 int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 	if (!pcluster)
 		return -1;
@@ -129,11 +134,17 @@ int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 			last_sector = entry_sector;
 			continue;
 		}
-		*pcluster = i;
 		entry_data[entry_index] = 0x1;
 		if (write_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0)
 			return -1;
-		return epic_writecluster(drive, i, i+1);
+		if (epic_writecluster(drive, i, i+1)!=0)
+			return -1;
+		*pcluster = i;
+		if (i>fsinfo.last_cluster){
+			fsinfo.last_cluster = i;
+			return epic_set_fsinfo(drive, fsinfo);
+		}
+		return 0;
 	}
 	return -1;
 }
@@ -406,6 +417,26 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 	}
 	return 0;
 }
+int epic_getfileinfo(unsigned int drive, unsigned int file_cluster, unsigned int file_offset, struct epic_file* pfileinfo){
+	if (!pfileinfo)
+		return -1;
+	struct epic_fshdr fsinfo = {0};
+	if (epic_get_fsinfo(drive, &fsinfo)!=0)
+		return -1;
+	if (fsinfo.signature!=EPICFS_SIGNATURE)
+		return -1;
+	unsigned char filemd_clusterdata[4096] = {0};
+	if (epic_read_clusterdata(drive, file_cluster, filemd_clusterdata)!=0)
+		return -1;
+	struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)filemd_clusterdata;
+	unsigned char* filedata_blob = (unsigned char*)(pclusterhdr+1);
+	struct epic_file* pfilemd = (struct epic_file*)(filedata_blob+file_offset);
+	if (!pfilemd->inuse||pfilemd->type==FILE_INVALID)
+		return -1;
+	strcpy(pfileinfo->filename, pfilemd->filename);
+	*pfileinfo = *pfilemd;
+	return 0;
+}
 struct file* openfile(unsigned int drive, char* filename){
 	if (!filename)
 		return (struct file*)0x0;
@@ -461,7 +492,7 @@ struct file* openfile(unsigned int drive, char* filename){
 	unsigned char cluster_data[4096] = {0};
 	unsigned int max_files = (sizeof(cluster_data)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 	unsigned int max_clusters = fshdr.fat_size/4;
-	for (current_cluster = 1;current_cluster<max_clusters;current_cluster++){
+	for (current_cluster = 1;current_cluster<max_clusters&&current_cluster<=fshdr.last_cluster;current_cluster++){
 		unsigned int next_cluster = 0;
 		if (epic_readcluster(drive, current_cluster,&next_cluster)!=0)
 			return (struct file*)0x0;
@@ -637,12 +668,6 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 		return -1;
 	return write_sectors(drive, clusterdata_sector,8, (uint16_t*)newcluster_data, 256);
 }
-int getfilelist(unsigned int drive, struct file* pdir, struct epic_file** pplist, unsigned int* ppentries){
-	if (!pdir||!pplist||!ppentries)
-		return -1;
-	
-	return 0;
-}
 int deletefile(struct file* pfile){
 	if (!pfile)
 		return -1;
@@ -783,17 +808,10 @@ unsigned int getfilesize(struct file* pfile){
 		printf("invalid file system type\n");
 		return 0;
 	}
-	struct epic_fshdr* pfshdr = (struct epic_fshdr*)(pfile+1);
-	if (pfshdr->signature!=EPICFS_SIGNATURE)
-		return 0;
-	unsigned char sector_data[4096] = {0};
-	unsigned int cluster_sector = (pfshdr->data_off+(pfile->file_cluster*8));
-	if (read_sectors(pfile->drive, cluster_sector, 8, (uint16_t*)sector_data, 256)!=0){
-		printf("failed to get file info\n");
-		return 0;
-	}
-	struct epic_file* pfile_md = (struct epic_file*)(sector_data+pfile->file_offset+sizeof(struct epic_clusterhdr));
-	return pfile_md->size;
+	struct epic_file filemd = {0};
+	if (epic_getfileinfo(pfile->drive, pfile->file_cluster, pfile->file_offset, &filemd)!=0)
+		return -1;
+	return filemd.size;
 }
 int getfileinfo(struct file* pfile, struct fileinfo* pinfo){
 	if (!pfile)
@@ -811,6 +829,33 @@ int getfileinfo(struct file* pfile, struct fileinfo* pinfo){
 	strcpy(pinfo->filename, pfilemd->filename);
 	pinfo->filesize = pfilemd->size;
 	pinfo->drive = pfile->drive;
+	return 0;
+}
+int getfilelist(struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries){
+	if (!pdir||!pplist||!plist_entries)
+		return -1;
+	unsigned int filesize = getfilesize(pdir);
+	struct epic_file* pentries = (struct epic_file*)kmalloc(filesize);
+	if (!pentries)
+		return -1;
+	if (readfile(pdir, (unsigned char*)pentries)!=0){
+		kfree((void*)pentries);
+		return -1;
+	}
+	unsigned int entrycnt = filesize/sizeof(struct epic_file);
+	pplist = (struct fileinfo**)kmalloc(entrycnt*sizeof(struct fileinfo));
+	if (!pplist){
+		kfree((void*)pentries);
+		return -1;
+	}
+	*plist_entries = entrycnt;
+	for (unsigned int i = 0;i<entrycnt;i++){
+		struct fileinfo* plistentry = *pplist+i;
+		struct epic_file* pentry = pentries+i;
+		strcpy(plistentry->filename, pentry->filename);
+		plistentry->drive = pdir->drive;
+	}
+	kfree((void*)pentries);
 	return 0;
 }
 int closefile(struct file* pfile){

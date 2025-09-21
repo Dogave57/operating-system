@@ -167,39 +167,8 @@ void kentry(void){
 		printf("test file not found\n");
 		while(1){};
 	}
-	printf("test file found and handle ptr %p\n", (void*)testfile);
-	struct file* file1 = openfile(bootdrive, "test.txt");
-	struct file* file2 = openfile(bootdrive, "test2.txt");
-	unsigned int file1_size = getfilesize(file1);
-	unsigned int file2_size = getfilesize(file2);
-	unsigned int testfile_size = getfilesize(testfile);
-	if (!file1||!file2){
-		printf("file no exist\n");
-		while(1){};
-	}
-	printf("took %dms to get file data | ", time_ms-last_ms);
-	last_ms = time_ms;
-	unsigned char* buffer = (unsigned char*)kmalloc(testfile_size);
-	if (!buffer)
-		panic("failed to allocate memory for buffer for fonts file\n");
-	if (readfile(testfile, buffer)!=0)
-		panic("failed to read from fonts file\n");
-	printf("fonts data hehe: %s\n", buffer);
-	kfree((void*)buffer);
-	last_ms = time_ms;
-	unsigned char* newbuf = "diddy party\n";
-	if (writefile(file2, newbuf, strlen(newbuf)+1)!=0){
-		printf("failed to write file contents\n");
-		__asm__ volatile("hlt");
-		while (1){};
-	}
-	unsigned char* test1buf = "test 1 new buf\n";
-	if (writefile(file1, (unsigned char*)test1buf, strlen(test1buf)+1)!=0)
-		panic("failed to write file 1 contents\n");
-	load_elf(bootdrive, "programs/shell.elf");
-	closefile(file1);
-	closefile(file2);
 	closefile(testfile);
+	load_elf(bootdrive, "programs/shell.elf");
 	set_multithreading(0);
 	while (1){};
 	return;	

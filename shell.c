@@ -11,7 +11,11 @@ void shell_echo(char* cmd, unsigned int cmdlen);
 void shell_run(char* cmd, unsigned int cmdlen);
 void shell_clear(char* cmd, unsigned int cmdlen);
 void shell_file(char* cmd, unsigned int cmdlen);
-void shell_pc(char* cmd, unsigned int cmdlen);
+void shell_rf(char* cmd, unsigned int cmdlen);
+void shell_cf(char* cmd, unsigned int cmdlen);
+void shell_df(char* cmd, unsigned int cmdlen);
+void shell_wf(char* cmd, unsigned int cmdlen);
+void shell_lf(char* cmd, unsigned int cmdlen);
 void shell_help(char* cmd, unsigned int cmdlen);
 void shell_echo(char* cmd, unsigned int cmdlen){
 	if (cmdlen<6||!cmd)
@@ -128,11 +132,37 @@ void shell_wf(char* cmd, unsigned int cmdlen){
 		printf("failed to write to file\n");
 		return;
 	}
+	printf("successfully written to %s\n", filename);
 	sys_closefile(pfile);
 	return;
 }
+void shell_lf(char* cmd, unsigned int cmdlen){
+	if (!cmd||cmdlen<3)
+		return;
+	unsigned int bootdrive = sys_getbootdrive();
+	char* dirname = cmd+3;
+	struct file* pdir = sys_openfile(bootdrive, dirname);
+	if (!pdir){
+		printf("invalid dir\n");
+		return;
+	}	
+	struct fileinfo* pfilelist = (struct fileinfo*)0x0;
+	unsigned int pfile_entries = 0;
+	if (sys_getfilelist(pdir, &pfilelist, &pfile_entries)!=0){
+		printf("failed to get file list\n");
+		sys_closefile(pdir);
+		return;
+	}
+	for (unsigned int i = 0;i<pfile_entries;i++){
+		struct fileinfo* pentry = pfilelist+i;
+		printf("%s\n", pentry->filename);
+	}
+	sys_kfree((void*)pfilelist);
+	sys_closefile(pdir);
+	return;
+}
 void shell_help(char* cmd, unsigned int cmdlen){
-	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nhelp - list commands\n");
+	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nlf - list files\nhelp - list commands\n");
 	return;
 }
 struct shelltab_entry shell_table[]={
@@ -144,6 +174,7 @@ struct shelltab_entry shell_table[]={
 	{"cf ", 3, shell_cf},
 	{"df ", 3, shell_df},
 	{"wf ", 3, shell_wf},
+	{"lf ", 3, shell_lf},
 	{"help", 4, shell_help},
 };
 int execute_cmd(char* cmd){

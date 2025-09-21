@@ -29,6 +29,7 @@ struct epic_fshdr{
 	unsigned int data_off;
 	unsigned int last_filemd_cluster;
 	unsigned int files_inroot;
+	unsigned int last_cluster;
 }__attribute__((packed));
 struct epic_clusterhdr{
 	enum clusterType type;
@@ -65,6 +66,7 @@ int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_
 int write_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPersector);
 int drive_getinfo(unsigned int drive, uint16_t* info);
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo);
+int epic_set_fsinfo(unsigned int drive, struct epic_fshdr fsinfo);
 int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster);
 int epic_free_cluster(unsigned int drive, unsigned int cluster);
 int epic_writecluster(unsigned int drive, unsigned int cluster, unsigned int data);
@@ -76,6 +78,7 @@ int epic_findfile_inroot(unsigned int drive, char* filename, struct epic_file* p
 int epic_findfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, struct epic_file* pfilemd);
 int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsigned int dirmd_offset, char* filename, enum fileType type);
 int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int file_offset);
+int epic_getfileinfo(unsigned int drive, unsigned int file_cluster, unsigned int file_offset, struct epic_file* pfileinfo);
 struct file* openfile(unsigned int drive, char* filename);
 struct file* opendir(unsigned int drive, char* dirname);
 int renamefile(struct file* pfile, char* newname);
@@ -85,6 +88,7 @@ int readfile(struct file* pfile, unsigned char* buffer);
 int writefile(struct file* pfile, unsigned char* buffer, unsigned int size);
 unsigned int getfilesize(struct file* pfile);
 int getfileinfo(struct file* pfile, struct fileinfo* pinfo);
+int getfilelist(struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

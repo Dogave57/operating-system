@@ -27,6 +27,7 @@ struct epic_fshdr{
 	unsigned int data_off;
 	unsigned int last_filemd_cluster;
 	unsigned int files_inroot;
+	unsigned int last_cluster;
 }__attribute__((packed));
 struct epic_clusterhdr{
 	enum clusterType type;
