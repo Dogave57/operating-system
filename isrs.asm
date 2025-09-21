@@ -47,6 +47,9 @@ extern kfree
 extern exception_handler
 extern getbootdrive
 extern getchar
+extern set_input_mode
+extern vga_set_color
+extern load_elf
 _start:
 
 ret
@@ -406,9 +409,12 @@ cmp edx, 12
 je clear
 cmp edx, 13
 je getchar
-jmp syscall_end
-sys_putchar:
-call putchar
+cmp edx, 14
+je set_input_mode
+cmp edx, 15
+je vga_set_color
+cmp edx, 16
+je load_elf
 jmp syscall_end
 syscall_end:
 ret

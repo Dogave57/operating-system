@@ -2,6 +2,7 @@
 #include "video.h"
 #include "panic.h"
 #include "stdlib.h"
+#include "vga.h"
 #include "interrupt.h"
 #include "kernel.h"
 #include "exception.h"

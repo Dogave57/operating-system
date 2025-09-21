@@ -1,6 +1,8 @@
 #ifndef _KEYBOARD
 #define _KEYBOARD
+#include "input.h"
 extern char current_char;
+extern enum inputMode input_mode;
 extern unsigned char shiftPressed;
 extern unsigned char capsPressed;
 static const char scantoascii[]={

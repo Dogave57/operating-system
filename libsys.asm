@@ -12,64 +12,51 @@ global sys_readfile
 global sys_getbootdrive
 global sys_clear
 global sys_getchar
+global sys_set_input_mode
+global sys_set_console_color
+global sys_loadelf
 sys_putchar:
 xor edx, edx
-mov ebx, [esp+4]
 int 90h
 ret
 sys_print:
 mov edx, 1
-mov ebx, [esp+4]
 int 90h
 ret
 sys_puthex:
 mov edx, 2
-mov ebx, [esp+4]
-mov ecx, [esp+8]
 int 90h
 ret
 sys_kmalloc:
 mov edx, 3
-mov ebx, [esp+4]
 int 90h
 ret
 sys_kfree:
 mov edx, 4
-mov ebx, [esp+4]
 int 90h
 ret
 sys_openfile:
 mov edx, 5
-mov ebx, [esp+4]
-mov ecx, [esp+8]
 int 90h
 ret
 sys_closefile:
 mov edx, 6
-mov ebx, [esp+4]
 int 90h
 ret
 sys_deletefile:
 mov edx, 7
-mov ebx, [esp+4]
 int 90h
 ret
 sys_getfilesize:
 mov edx, 8
-mov ebx, [esp+4]
 int 90h
 ret
 sys_writefile:
 mov edx, 9
-mov ebx, [esp+4]
-mov ecx, [esp+8]
-;mov edx, [esp+12]
 int 90h
 ret
 sys_readfile:
 mov edx, 10
-mov ebx, [esp+4]
-mov ecx, [esp+8]
 int 90h
 ret
 sys_getbootdrive:
@@ -82,5 +69,17 @@ int 90h
 ret
 sys_getchar:
 mov edx, 13
+int 90h
+ret
+sys_set_input_mode:
+mov edx, 14
+int 90h
+ret
+sys_set_console_color:
+mov edx, 15
+int 90h
+ret
+sys_loadelf:
+mov edx, 16
 int 90h
 ret

@@ -32,7 +32,6 @@ int load_elf(unsigned int drive, char* filename){
 		printf("not a valid ELF binary\n");
 		return -1;
 	}
-	printf("valid ELF binary\n");
 	struct elf32_hdr* ehdr = (struct elf32_hdr*)filebuf;
 	if (ehdr->type!=ET_DYN){
 		printf("non-dynamic elf binary!\n");
@@ -78,9 +77,25 @@ int load_elf(unsigned int drive, char* filename){
 		}
 	}
 	kfree((void*)filebuf);
-	programEntry entry = (programEntry)(pimage+ehdr->entry);
+	static programEntry entry = 0;
+	unsigned char pstackval = 0;
+	static void* stackptr = (void*)0x0;
+	stackptr = &pstackval;
+	entry = (programEntry)(pimage+ehdr->entry);
+	unsigned int stacksize = 8192;
+	static unsigned char* stack = (void*)0x0;
+	stack = kmalloc(stacksize);
+	if (!stack){
+		printf("failed to allocate memory for stack\n");
+		kfree((void*)pimage);
+		return -1;
+	}
+	//__asm__ volatile("mov %0, %%esp" :: "a"(stack+stacksize));
 	entry();
+	__asm__ volatile("mov %0, %%esp" :: "a"(stackptr));
+	printf("program finished execution\n");
 	kfree((void*)pimage);
+	kfree((void*)stack);
 	return 0;
 }
 int load_bin(unsigned int drive, char* filename){
@@ -105,9 +120,7 @@ int load_bin(unsigned int drive, char* filename){
 	}
 	closefile(pfile);
 	programEntry entry = (programEntry)pimage;
-	printf("executing program\n");
 	entry();
-	printf("program execution finished\n");
 	kfree((void*)pimage);
 	return 0;
 }

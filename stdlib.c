@@ -243,6 +243,11 @@ int scan(char* buffer, unsigned int bufmax, unsigned char end){
 			buffer[i] = 0;
 			return 0;
 		}
+		if (ch=='\b'){
+			i--;
+			buffer[i] = 0;
+			continue;
+		}
 		buffer[i] = ch;
 		i++;
 	}

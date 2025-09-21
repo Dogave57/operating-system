@@ -16,6 +16,7 @@
 #include "pci.h"
 #include "kernel.h"
 char current_char = 0;
+unsigned int inputMode = 0;
 unsigned char shiftPressed = 0;
 unsigned char capsPressed = 0;
 size_t cmdlen = 0;
@@ -255,7 +256,18 @@ void keyboard_interrupt(void){
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
 	putchar(ascii);
+	switch (inputMode){
+		case IM_CMD:
+		break;	
+		case IM_FREE:
+
+		break;
+	}
 	current_char = ascii;
+	return;
+}
+void set_input_mode(enum inputMode mode){
+	inputMode = mode;
 	return;
 }
 char getchar(void){

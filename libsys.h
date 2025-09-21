@@ -1,6 +1,8 @@
 #ifndef _LIBSYS
 #define _LIBSYS
 #include "filesystem.h"
+#include "input.h"
+#include "vga.h"
 void sys_putchar(char ch);
 void sys_print(char* msg);
 void sys_puthex(unsigned char hex, unsigned int isUpper);
@@ -15,4 +17,7 @@ int sys_readfile(struct file* pfile, unsigned char* buf);
 int sys_getbootdrive(void);
 void sys_clear(void);
 char sys_getchar(void);
+void sys_set_input_mode(enum inputMode mode);
+void sys_set_console_color(enum vgaColor fg, enum vgaColor bg);
+void sys_loadelf(unsigned int drive, char* filename);
 #endif
