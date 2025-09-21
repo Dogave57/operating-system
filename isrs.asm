@@ -423,6 +423,8 @@ cmp edx, 18
 je createfile
 cmp edx, 19
 je getfilelist
+cmp edx, 20
+je renamefile
 jmp syscall_end
 syscall_end:
 ret

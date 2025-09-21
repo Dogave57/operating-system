@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "bootloader.h"
 #include "panic.h"
+#include "stdlib.h"
 #include "memory.h"
 #define align_up(val, align)((val+align-1) & ~(align-1))
 struct heap_metadata* heap_data = (struct heap_metadata*)NULL;
@@ -62,27 +63,29 @@ void* kmalloc(size_t size){
 		heap_data->firstblock = heap_data->currentblock;
 		return (void*)(heap_data->currentblock+1);
 	}
-	if (heap_data->freeblock_cnt){
-		struct heap_block* currentlink = (struct heap_block*)heap_data->firstblock;
-		for (int i = heap_data->freeblock_cnt;i>-1;i--){
-			currentlink = *(heap_data->freelist-i);
-			if (currentlink->inuse!=0||currentlink->datasize<size){
-				continue;
+	if (heap_data->freeblock_cnt!=0){
+		for (unsigned int i = 0;i<heap_data->freeblock_cnt;i++){
+			struct heap_block* pblock = (struct heap_block*)(*(heap_data->freelist-heap_data->freeblock_cnt+i));
+			if (!pblock||pblock->inuse!=0||pblock->datasize<size){
+			continue;
 			}
-			uint32_t sizedt = currentlink->datasize-size;
-			currentlink->datasize = size;
-			if (sizedt){
-				struct heap_block* newblock = (struct heap_block*)((unsigned char*)currentlink+sizeof(struct heap_block)+currentlink->datasize);
-				newblock->flink = currentlink->flink;
-				currentlink->flink->blink = newblock;
-				currentlink->flink = newblock;
-				newblock->datasize = sizedt;
-				newblock->inuse = 0;
-			}else
-				heap_data->freeblock_cnt--;
-			currentlink->inuse = 1;
-			return (void*)(currentlink+1);
-		}
+			unsigned int dt = pblock->datasize-size;
+	/*		if (dt){
+			struct heap_block* newblock = (struct heap_block*)((unsigned char*)(pblock+1)+size);
+			pblock->flink->blink = newblock;
+			pblock->flink = newblock;
+			newblock->blink = newblock;
+			newblock->inuse = 0;
+			newblock->datasize = dt;
+			}else{
+			heap_data->freeblock_cnt--;
+			}*/
+			//TODO:
+			//fix corrupted heap allocation when moving new size to size field in block
+			heap_data->freeblock_cnt--;
+			pblock->inuse = 1;
+			return (void*)(pblock+1);
+		}	
 	}
 	if (heap_data->currentblock){
 		uint32_t offset = heap_data->currentblock->datasize+sizeof(struct heap_block);

@@ -834,17 +834,15 @@ int getfileinfo(struct file* pfile, struct fileinfo* pinfo){
 	pinfo->drive = pfile->drive;
 	return 0;
 }
-int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries){
+int getfilelist(struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries){
 	if (!pplist||!plist_entries)
 		return -1;
 	struct epic_fshdr fsinfo = {0};
-	if (epic_get_fsinfo(drive, &fsinfo)!=0)
+	if (epic_get_fsinfo(pdir->drive, &fsinfo)!=0)
 		return -1;
 	struct epic_file filemd = {0};
-	if (pdir){
-	if (epic_getfileinfo(drive, pdir->file_cluster, pdir->file_offset, &filemd)!=0)
+	if (pdir&&epic_getfileinfo(pdir->drive, pdir->file_cluster, pdir->file_offset, &filemd)!=0)
 		return -1;
-	}
 	unsigned int filesize = filemd.size;
 	if (!pdir)
 		filesize = fsinfo.files_inroot*sizeof(struct epic_file);
@@ -855,7 +853,7 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 	if(!pdir)
 		current_cluster = 1;
 	unsigned int file_entries = filesize/sizeof(struct epic_file);
-	struct fileinfo* plist = (struct fileinfo*)kmalloc(sizeof(struct fileinfo)*file_entries);
+	struct fileinfo* plist = (struct fileinfo*)kmalloc(sizeof(struct fileinfo)*file_entries+1);
 	if (!plist)
 		return -1;
 	*pplist = plist;
@@ -863,10 +861,10 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 	unsigned int file_entry = 0;
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int next_cluster = 0;
-		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
+		if (epic_readcluster(pdir->drive, current_cluster, &next_cluster)!=0)
 			return -1;
 		unsigned char clusterdata[4096] = {0};
-		if (epic_read_clusterdata(drive, current_cluster, clusterdata)!=0)
+		if (epic_read_clusterdata(pdir->drive, current_cluster, clusterdata)!=0)
 			return -1;
 		unsigned int cluster_entries = (sizeof(clusterdata)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)clusterdata;
@@ -875,6 +873,7 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 		struct epic_file* pfile = pfilelist+s;
 		if (!pfile->inuse)
 			continue;
+		printf("found %s in dir\n", pfile->filename);
 		struct fileinfo* pentry = plist+s;
 		strcpy(pentry->filename, pfile->filename);
 		pentry->filesize = pfile->size;

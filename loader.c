@@ -4,10 +4,12 @@
 #include "video.h"
 #include "elf.h"
 #include "reb.h"
+#include "timer.h"
 #include "loader.h"
 int load_elf(unsigned int drive, char* filename){
 	if (!filename)
 		return -1;
+	unsigned int before_ms = time_ms;
 	struct file* pfile = openfile(drive, filename);
 	if (!pfile)
 		return -1;
@@ -91,6 +93,7 @@ int load_elf(unsigned int drive, char* filename){
 		return -1;
 	}
 	//__asm__ volatile("mov %0, %%esp" :: "a"(stack+stacksize));
+	printf("loaded program in %dms\n", time_ms-before_ms);
 	entry();
 	__asm__ volatile("mov %0, %%esp" :: "a"(stackptr));
 	printf("program finished execution\n");

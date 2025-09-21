@@ -137,6 +137,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 			break;
 		if (current_cluster==EPICFS_FC)
 			break;
+		pdir->size+=sizeof(struct epic_file);
 		if (createfile_incluster(current_cluster, pfiledata, filename, type)!=0){
 			current_cluster = fat[current_cluster];
 			continue;
@@ -152,7 +153,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 	if (pdir->last_data_cluster!=0)
 		fat[pdir->last_data_cluster] = new_cluster;
 	pdir->last_data_cluster = new_cluster;
-	pdir->size+=4096;
+	pdir->size+=sizeof(struct epic_file);
 	printf("creating file in cluster\n");
 	return createfile_incluster(new_cluster, pfiledata, filename, type);
 }
@@ -222,6 +223,7 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	pfile_metadata->inuse = 1;
 	*pfiledata = pfile_metadata;
 	next_free_file++;
+	hdr->files_inroot++;
 	printf("successfully created %s in root\n", filename);
 	return 0;
 }

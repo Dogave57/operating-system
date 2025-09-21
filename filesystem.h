@@ -88,7 +88,7 @@ int readfile(struct file* pfile, unsigned char* buffer);
 int writefile(struct file* pfile, unsigned char* buffer, unsigned int size);
 unsigned int getfilesize(struct file* pfile);
 int getfileinfo(struct file* pfile, struct fileinfo* pinfo);
-int getfilelist(struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
+int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
 int closefile(struct file* pfile);
 struct highlow_64 drive_getsectors(unsigned int drive);
 unsigned int getbootdrive(void);

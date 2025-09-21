@@ -22,5 +22,6 @@ void sys_set_console_color(enum vgaColor fg, enum vgaColor bg);
 int sys_loadelf(unsigned int drive, char* filename);
 int sys_getfileinfo(struct file* pfile, struct fileinfo* pinfo);
 int sys_createfile(unsigned int drive, char* filename);
-int sys_getfilelist(struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
+int sys_getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
+int sys_renamefile(struct file* pfile, char* newname);
 #endif

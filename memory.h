@@ -13,7 +13,7 @@ struct memorymap_entry{
 	uint32_t acpi;
 };
 struct heap_block{
-	uint32_t datasize;
+	unsigned int datasize;
 	unsigned int inuse;
 	struct heap_block* flink;
 	struct heap_block* blink;

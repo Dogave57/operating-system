@@ -18,6 +18,7 @@ global sys_loadelf
 global sys_getfileinfo
 global sys_createfile
 global sys_getfilelist
+global sys_renamefile
 sys_putchar:
 xor edx, edx
 int 90h
@@ -96,5 +97,9 @@ int 90h
 ret
 sys_getfilelist:
 mov edx, 19
+int 90h
+ret
+sys_renamefile:
+mov edx, 20
 int 90h
 ret

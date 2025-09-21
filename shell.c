@@ -142,13 +142,13 @@ void shell_lf(char* cmd, unsigned int cmdlen){
 	unsigned int bootdrive = sys_getbootdrive();
 	char* dirname = cmd+3;
 	struct file* pdir = sys_openfile(bootdrive, dirname);
-	if (!pdir){
+	if (!pdir&&(*dirname!='/'&&*(dirname+1)!=0)){
 		printf("invalid dir\n");
 		return;
 	}	
 	struct fileinfo* pfilelist = (struct fileinfo*)0x0;
 	unsigned int pfile_entries = 0;
-	if (sys_getfilelist(pdir, &pfilelist, &pfile_entries)!=0){
+	if (sys_getfilelist(bootdrive, pdir, &pfilelist, &pfile_entries)!=0||!pfilelist){
 		printf("failed to get file list\n");
 		sys_closefile(pdir);
 		return;
