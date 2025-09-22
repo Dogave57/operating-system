@@ -188,7 +188,7 @@ void shell_help(char* cmd, unsigned int cmdlen){
 	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nlf - list files\nhelp - list commands\n");
 	return;
 }
-struct shelltab_entry shell_table[]={
+static struct shelltab_entry shell_table[]={
 	{"echo ", 5, shell_echo},
 	{"run ", 4, shell_run},
 	{"clear", 5, shell_clear},
@@ -216,7 +216,6 @@ int execute_cmd(char* cmd){
 		unsigned int last_time = sys_get_time_ms();
 		entry.pfunc(cmd, cmdlen);
 		unsigned int elapsed_time = sys_get_time_ms()-last_time;
-		printf("executed in %dms\n", elapsed_time);
 		return 0;
 	}
 	return -1;
@@ -225,7 +224,9 @@ int _start(void){
 	sys_clear();
 	unsigned int bootdrive = sys_getbootdrive();
 	sys_set_console_color(VGA_COLOR_BRIGHT_WHITE, VGA_COLOR_BLACK);
-	sys_print("dynamic interactive shell loaded!\n");	
+	unsigned int time_ms = sys_get_time_ms();
+	printf("Welcome to the shell!\n");
+	printf("took %dms to boot up\n", time_ms);
 	while (1){
 		char input[256] = {0};
 		scan(input, sizeof(input)-1, '\n');

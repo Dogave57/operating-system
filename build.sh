@@ -25,8 +25,8 @@ i686-elf-gcc -c -O0 calc.c $CFLAGS -o calc.o
 echo linking kernel
 i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o loader.o libsys.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
-i686-elf-ld -pie shell.o libsys.o stdlib.o -o shell.elf
-i686-elf-ld -pie calc.o libsys.o stdlib.o -o calc.elf
+i686-elf-ld -pie -nostdlib shell.o libsys.o stdlib.o -o shell.elf
+i686-elf-ld -pie -nostdlib calc.o libsys.o stdlib.o -o calc.elf
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img

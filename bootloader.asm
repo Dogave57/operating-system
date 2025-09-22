@@ -97,7 +97,7 @@ jmp memorymaploop
 memorymaploopend:
 mov es, ax
 xor ah, ah
-mov al, 0x03
+mov al, 13h
 int 0x10
 mov eax, cr0
 or eax, 1

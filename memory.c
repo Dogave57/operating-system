@@ -45,6 +45,10 @@ int heap_init(void){
 	return 0;
 }
 void* kmalloc(size_t size){
+	if (!heap_data){
+		if (heap_init()!=0)
+			return NULL;
+	}
 	if (size<1)
 		return NULL;
 	size = align_up(size, 4);

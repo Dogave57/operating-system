@@ -411,13 +411,15 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 		if (epic_read_clusterdata(drive, pfilemd->parent_cluster, parentmd_clusterdata)!=0)
 			return -1;
 		struct epic_clusterhdr* parentclusterhdr = (struct epic_clusterhdr*)parentmd_clusterdata;
-		struct epic_file* pparentmd = (struct epic_file*)((unsigned char*)(parentclusterhdr+1)+pfilemd->parent_offset);
+		struct epic_file* pparentmd = (struct epic_file*)(((unsigned char*)(parentclusterhdr+1))+pfilemd->parent_offset);
 		pparentmd->size-=sizeof(struct epic_file);
 		if (epic_write_clusterdata(drive, pfilemd->parent_cluster, parentmd_clusterdata)!=0)
 			return -1;
 	}
-	printf("done adjusting parent dir\n");
-	pfilemd->inuse = 0;
+	printf("cluster %d\n", file_cluster);
+	printf("offset: %d\n", file_offset);
+	printf("%s parent cluster: %d\n", pfilemd->filename, pfilemd->parent_cluster);
+	pfilemd->inuse = 1;
 	pfilemd->size = 0;
 	if (epic_write_clusterdata(drive, file_cluster, filemd_clusterdata)!=0)
 		return -1;
@@ -669,7 +671,7 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 		pfile->file_offset = i*sizeof(struct epic_file);
 		pfile->parent_cluster = 0;
 		pfile->parent_offset = 0;
-		fshdr.files_inroot++;
+		pfshdr->files_inroot++;
 		if (epic_set_fsinfo(drive, fshdr)!=0)
 			return -1;
 		return write_sectors(drive, filemd_sector, 8, (uint16_t*)sector_data, 256);
@@ -883,6 +885,7 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 	unsigned int filesize = filemd.size;
 	if (!pdir)
 		filesize = fsinfo.files_inroot*sizeof(struct epic_file);
+	printf("size: %d\n", filesize);
 	unsigned int file_clusters = 1+((filesize-1)/4096);
 	if (!pdir)
 		file_clusters = fsinfo.last_cluster;
@@ -920,7 +923,7 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 			pentry->filesize = pfile->size;
 			pentry->drive = pdir->drive;
 			file_entry++;
-			if (file_entry>=file_entries){
+			if (file_entry>file_entries){
 			return 0;
 			}
 		}

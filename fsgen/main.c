@@ -230,7 +230,7 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	*pfiledata = pfile_metadata;
 	next_free_file++;
 	hdr->files_inroot++;
-	printf("successfully created %s in root\n", filename);
+	printf("successfully created %s in root with cluster %d and offset %d\n", filename, current_filecluster, pfile_metadata->file_offset);
 	return 0;
 }
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){

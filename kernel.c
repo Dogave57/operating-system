@@ -28,18 +28,22 @@ void kentry(void){
 	unsigned int avalibleMemory = 0;
 	uint64_t installedMemory = 0;
 	unsigned int bootdrive = getbootdrive();
+	if (heap_init()!=0){
+		panic("failed to initialize kernel heap\n");
+		return;
+	}
 	if (idt_init()!=0){
 		panic("failed to load idt\n");
 		__asm__ volatile("hlt");
 		return;
 	}
-	cursor_enable(0x00, 15);
-	if (heap_init()!=0){
-		panic("failed to initialize kernel heap\n");
+	if (vga_init()!=0){
+		panic("failed to intiailize vga\n");
 		return;
 	}
-	if (usb_init()!=0){
-		panic("failed to initialize usb\n");
+	cursor_enable(0x00, 15);	
+	if (pci_init()!=0){
+		printf("failed to initialize pci\n");
 		return;
 	}
 	printf("cpu vendor: %s\n", blargs->vendorid);
@@ -161,13 +165,6 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
-	struct epic_file filemd = {0};	
-	struct file* testfile = openfile(bootdrive, "assets/fonts/font.txt");
-	if (!testfile){
-		printf("test file not found\n");
-		while(1){};
-	}
-	closefile(testfile);
 	load_elf(bootdrive, "programs/shell.elf");
 	set_multithreading(0);
 	while (1){};

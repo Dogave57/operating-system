@@ -101,7 +101,7 @@ int pci_deinit(void){
 }
 int pci_device_exists(uint8_t bus, uint8_t dev, uint8_t func){
 	if (pci_initialized==0)
-		return 0;
+		pci_init();
 	if (pci_buses[bus][dev][func])
 		return 1;
 	unsigned char exists = (pci_get_vendor(bus,dev,func)!=0xFFFF);
