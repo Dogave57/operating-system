@@ -13,9 +13,11 @@ void shell_clear(char* cmd, unsigned int cmdlen);
 void shell_file(char* cmd, unsigned int cmdlen);
 void shell_rf(char* cmd, unsigned int cmdlen);
 void shell_cf(char* cmd, unsigned int cmdlen);
+void shell_cd(char* cmd, unsigned int cmdlen);
 void shell_df(char* cmd, unsigned int cmdlen);
 void shell_wf(char* cmd, unsigned int cmdlen);
 void shell_lf(char* cmd, unsigned int cmdlen);
+void shell_color(char* cmd, unsigned int cmdlen);
 void shell_help(char* cmd, unsigned int cmdlen);
 void shell_echo(char* cmd, unsigned int cmdlen){
 	if (cmdlen<6||!cmd)
@@ -49,7 +51,7 @@ void shell_file(char* cmd, unsigned int cmdlen){
 		return;
 	}
 	printf("file name: %s\n", info.filename);
-	printf("file size: %d kb\n", info.filesize/1024);
+	printf("file size: %d bytes\n", info.filesize);
 	printf("file drive: %d\n", info.drive);
 	sys_closefile(pfile);
 	return;
@@ -86,11 +88,23 @@ void shell_cf(char* cmd, unsigned int cmdlen){
 		return;
 	unsigned int bootdrive = sys_getbootdrive();
 	char* filename = cmd+3;
-	if (sys_createfile(bootdrive, filename)!=0){
+	if (sys_createfile(bootdrive, filename, FILE_REGULAR)!=0){
 		printf("failed to create file\n");
 		return;
 	}
 	printf("successfully created %s\n", filename);
+	return;
+}
+void shell_cd(char* cmd, unsigned int cmdlen){
+	if (!cmd||cmdlen<3)
+		return;
+	unsigned int bootdrive = sys_getbootdrive();
+	char* dirname = cmd+3;
+	if (sys_createfile(bootdrive, dirname, FILE_DIR)!=0){
+		printf("failed to create dir\n");
+		return;
+	}
+	printf("successfully created %s\n", dirname);
 	return;
 }
 void shell_df(char* cmd, unsigned int cmdlen){
@@ -141,8 +155,9 @@ void shell_lf(char* cmd, unsigned int cmdlen){
 		return;
 	unsigned int bootdrive = sys_getbootdrive();
 	char* dirname = cmd+3;
+	unsigned int isroot = (*(dirname)=='/')&&(*(dirname+1)==0);
 	struct file* pdir = sys_openfile(bootdrive, dirname);
-	if (!pdir&&(*dirname!='/'&&*(dirname+1)!=0)){
+	if (!pdir&&!isroot){
 		printf("invalid dir\n");
 		return;
 	}	
@@ -161,6 +176,14 @@ void shell_lf(char* cmd, unsigned int cmdlen){
 	sys_closefile(pdir);
 	return;
 }
+void shell_color(char* cmd, unsigned int cmdlen){
+	if (!cmd||cmdlen<6)
+		return;
+	char* strcolor = cmd+6;
+	unsigned int color = atoi(strcolor);
+	sys_set_console_color(color, VGA_COLOR_BLACK);
+	return;
+}
 void shell_help(char* cmd, unsigned int cmdlen){
 	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nlf - list files\nhelp - list commands\n");
 	return;
@@ -172,9 +195,11 @@ struct shelltab_entry shell_table[]={
 	{"file ", 5, shell_file},
 	{"rf ", 3, shell_rf},
 	{"cf ", 3, shell_cf},
+	{"cd ", 3, shell_cd},
 	{"df ", 3, shell_df},
 	{"wf ", 3, shell_wf},
 	{"lf ", 3, shell_lf},
+	{"color ", 6, shell_color},
 	{"help", 4, shell_help},
 };
 int execute_cmd(char* cmd){
@@ -188,7 +213,10 @@ int execute_cmd(char* cmd){
 			continue;
 		if (memcmp((void*)cmd, (void*)entry.name, entry.nameLen)!=0)
 			continue;
+		unsigned int last_time = sys_get_time_ms();
 		entry.pfunc(cmd, cmdlen);
+		unsigned int elapsed_time = sys_get_time_ms()-last_time;
+		printf("executed in %dms\n", elapsed_time);
 		return 0;
 	}
 	return -1;
@@ -196,30 +224,8 @@ int execute_cmd(char* cmd){
 int _start(void){
 	sys_clear();
 	unsigned int bootdrive = sys_getbootdrive();
+	sys_set_console_color(VGA_COLOR_BRIGHT_WHITE, VGA_COLOR_BLACK);
 	sys_print("dynamic interactive shell loaded!\n");	
-	unsigned char* testalloc = sys_kmalloc(64);
-	printf("allocated dynamic memory at %p\n", testalloc);
-	sys_kfree((void*)testalloc);
-	struct file* testfile = sys_openfile(bootdrive, "assets/fonts/font.txt");
-	if (!testfile){
-		printf("failed to open test file\n");
-		return -1;
-	}
-	unsigned int filesize = sys_getfilesize(testfile);
-	unsigned char* filebuf = (unsigned char*)sys_kmalloc(filesize);
-	if (!filebuf){
-		printf("failed to allocate memory for test buffer\n");
-		return -1;
-	}
-	if (sys_readfile(testfile, filebuf)!=0){
-		printf("failed to read test file\n");
-		sys_closefile(testfile);
-		sys_kfree((void*)filebuf);	
-		return -1;
-	}
-	printf("file buf: %s\n", filebuf);
-	sys_closefile(testfile);
-	sys_kfree((void*)filebuf);
 	while (1){
 		char input[256] = {0};
 		scan(input, sizeof(input)-1, '\n');

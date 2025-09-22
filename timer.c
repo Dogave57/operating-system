@@ -100,6 +100,9 @@ __attribute__((cdecl)) void timer_interrupt(uint32_t edi, uint32_t esi, uint32_t
 	scheduler_info.thread_max_ms = 0;
 	return;
 }
+unsigned int get_time_ms(void){
+	return time_ms;
+}
 void set_pit_frequency(unsigned int freq){
 	__asm__ volatile("cli");
 	unsigned int div = 1193182/freq;

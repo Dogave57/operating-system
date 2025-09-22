@@ -5,6 +5,8 @@
 #include "stdlib.h"
 #include "panic.h"
 #include "filesystem.h"
+static unsigned int last_drive = 0;
+static struct epic_fshdr last_info = {0};
 int read_sectors(unsigned int drive, uint32_t sector, uint8_t sectorcnt, uint16_t* buffer, unsigned int wordsPerSector){
         if (!buffer)
                 return -1;
@@ -93,8 +95,6 @@ int drive_getinfo(unsigned int drive, uint16_t* info){
 int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 	if (!pinfo)
 		return -1;
-	static unsigned int last_drive = 0;
-	static struct epic_fshdr last_info = {0};
 	if (drive==last_drive){
 		*pinfo = last_info;
 		return 0;
@@ -108,6 +108,8 @@ int epic_get_fsinfo(unsigned int drive, struct epic_fshdr* pinfo){
 	return 0;
 }
 int epic_set_fsinfo(unsigned int drive, struct epic_fshdr fsinfo){
+	if (last_drive==drive)
+		last_info = fsinfo;
 	unsigned char data[4096] = {0};
 	*(struct epic_fshdr*)data = fsinfo;
 	return write_sectors(drive, 128, 8, (uint16_t*)data, 256);
@@ -340,9 +342,13 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 		pfile->type = type;
 		pfile->file_cluster = current_cluster;
 		pfile->file_offset = s*sizeof(struct epic_file);
+		pfile->parent_cluster = dirmd_cluster;
+		pfile->parent_offset = dirmd_offset;
 		pfilemd->size+=sizeof(struct epic_file);
 		pfile->inuse = 1;
-		return epic_write_clusterdata(drive, current_cluster, clusterdata)&&epic_write_clusterdata(drive, dirmd_cluster, md_clusterdata);	
+		if (epic_write_clusterdata(drive, dirmd_cluster, md_clusterdata)!=0)
+			return -1;
+		return epic_write_clusterdata(drive, current_cluster, clusterdata);	
 		}
 		current_cluster = next_cluster;
 	}
@@ -361,6 +367,8 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 	pnewfile->last_data_cluster = 0;
 	pnewfile->file_cluster = new_cluster;
 	pnewfile->file_offset = 0;
+	pnewfile->parent_cluster = dirmd_cluster;
+	pnewfile->parent_offset = dirmd_offset;
 	if (!pfilemd->data)
 		pfilemd->data = new_cluster;
 	if (pfilemd->last_data_cluster!=0){
@@ -393,6 +401,22 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 	struct epic_file* pfilemd = (struct epic_file*)(filedata_blob+file_offset);
 	if (!pfilemd->inuse||pfilemd->type==FILE_INVALID)
 		return 0;
+	if (!pfilemd->parent_cluster){
+		fsinfo.files_inroot--;
+		if (epic_set_fsinfo(drive, fsinfo)!=0)
+			return -1;	
+	}
+	if (pfilemd->parent_cluster){
+		unsigned char parentmd_clusterdata[4096] = {0};
+		if (epic_read_clusterdata(drive, pfilemd->parent_cluster, parentmd_clusterdata)!=0)
+			return -1;
+		struct epic_clusterhdr* parentclusterhdr = (struct epic_clusterhdr*)parentmd_clusterdata;
+		struct epic_file* pparentmd = (struct epic_file*)((unsigned char*)(parentclusterhdr+1)+pfilemd->parent_offset);
+		pparentmd->size-=sizeof(struct epic_file);
+		if (epic_write_clusterdata(drive, pfilemd->parent_cluster, parentmd_clusterdata)!=0)
+			return -1;
+	}
+	printf("done adjusting parent dir\n");
 	pfilemd->inuse = 0;
 	pfilemd->size = 0;
 	if (epic_write_clusterdata(drive, file_cluster, filemd_clusterdata)!=0)
@@ -638,11 +662,14 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 			continue;
 		strcpy(pfile->filename, filename);
 		pfile->inuse = 1;
-		pfile->type = FILE_REGULAR;
+		pfile->type = type;
 		pfile->size = 0;
 		pfile->data = 0;
 		pfile->file_cluster = pfshdr->last_filemd_cluster;
 		pfile->file_offset = i*sizeof(struct epic_file);
+		pfile->parent_cluster = 0;
+		pfile->parent_offset = 0;
+		fshdr.files_inroot++;
 		if (epic_set_fsinfo(drive, fshdr)!=0)
 			return -1;
 		return write_sectors(drive, filemd_sector, 8, (uint16_t*)sector_data, 256);
@@ -657,13 +684,18 @@ int createfile(unsigned int drive, char* filename, enum fileType type){
 	unsigned int clusterdata_sector = pfshdr->data_off+(new_cluster*8);
 	if (read_sectors(drive, clusterdata_sector, 8, (uint16_t*)newcluster_data, 256)!=0)
 		return -1;
+	struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)newcluster_data;
+	pclusterhdr->type = CLUSTER_FILE;
+	pclusterhdr->cluster = clusterdata_sector;
 	strcpy(newfile->filename, filename);
 	newfile->inuse = 1;
-	newfile->type = FILE_REGULAR;
+	newfile->type = type;
 	newfile->file_cluster = new_cluster;
 	newfile->file_offset = 0;
 	newfile->size = 0;
 	newfile->data = 0;
+	newfile->parent_cluster = 0;
+	newfile->parent_offset = 0;
 	pfshdr->files_inroot++;
 	pfshdr->last_filemd_cluster = new_cluster;
 	if (epic_set_fsinfo(drive, fshdr)!=0)
@@ -873,18 +905,24 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 			return -1;
 		unsigned int cluster_entries = (sizeof(clusterdata)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)clusterdata;
+		if (pclusterhdr->type!=CLUSTER_FILE&&!pdir){
+			current_cluster = next_cluster;
+			continue;
+		}
 		struct epic_file* pfilelist = (struct epic_file*)(pclusterhdr+1);
 		for (unsigned int s = 0;s<cluster_entries;s++){
-		struct epic_file* pfile = pfilelist+s;
-		if (!pfile->inuse)
+			struct epic_file* pfile = pfilelist+s;
+			if (!pfile->inuse){
 			continue;
-		struct fileinfo* pentry = plist+s;
-		strcpy(pentry->filename, pfile->filename);
-		pentry->filesize = pfile->size;
-		pentry->drive = pdir->drive;
-		file_entry++;
-		if (file_entry>=file_entries)
+			}
+			struct fileinfo* pentry = plist+file_entry;
+			strcpy(pentry->filename, pfile->filename);
+			pentry->filesize = pfile->size;
+			pentry->drive = pdir->drive;
+			file_entry++;
+			if (file_entry>=file_entries){
 			return 0;
+			}
 		}
 		current_cluster = next_cluster;	
 	}

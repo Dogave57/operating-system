@@ -52,6 +52,7 @@ extern vga_set_color
 extern load_elf
 extern getfileinfo
 extern getfilelist
+extern get_time_ms
 _start:
 
 ret
@@ -425,6 +426,8 @@ cmp edx, 19
 je getfilelist
 cmp edx, 20
 je renamefile
+cmp edx, 21
+je get_time_ms
 jmp syscall_end
 syscall_end:
 ret

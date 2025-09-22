@@ -65,7 +65,6 @@ void clear(void){
 void vga_set_color(unsigned char fg, unsigned char bg){
 	vga_attrib = (bg << 4)|(fg&0xF);
 	for (unsigned int i = 0;i<VGA_WIDTH*VGA_HEIGHT*2;i+=2){
-		*((volatile unsigned char*)VGA_BUFFER+i) = ' ';
 		*((volatile unsigned char*)VGA_BUFFER+i+1) = vga_attrib;
 	}
 	return;

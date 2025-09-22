@@ -19,6 +19,7 @@ global sys_getfileinfo
 global sys_createfile
 global sys_getfilelist
 global sys_renamefile
+global sys_get_time_ms
 sys_putchar:
 xor edx, edx
 int 90h
@@ -101,5 +102,9 @@ int 90h
 ret
 sys_renamefile:
 mov edx, 20
+int 90h
+ret
+sys_get_time_ms:
+mov edx, 21
 int 90h
 ret

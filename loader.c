@@ -80,25 +80,11 @@ int load_elf(unsigned int drive, char* filename){
 	}
 	kfree((void*)filebuf);
 	static programEntry entry = 0;
-	unsigned char pstackval = 0;
-	static void* stackptr = (void*)0x0;
-	stackptr = &pstackval;
 	entry = (programEntry)(pimage+ehdr->entry);
-	unsigned int stacksize = 8192;
-	static unsigned char* stack = (void*)0x0;
-	stack = kmalloc(stacksize);
-	if (!stack){
-		printf("failed to allocate memory for stack\n");
-		kfree((void*)pimage);
-		return -1;
-	}
-	//__asm__ volatile("mov %0, %%esp" :: "a"(stack+stacksize));
 	printf("loaded program in %dms\n", time_ms-before_ms);
 	entry();
-	__asm__ volatile("mov %0, %%esp" :: "a"(stackptr));
 	printf("program finished execution\n");
 	kfree((void*)pimage);
-	kfree((void*)stack);
 	return 0;
 }
 int load_bin(unsigned int drive, char* filename){

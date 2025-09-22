@@ -142,6 +142,8 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 			current_cluster = fat[current_cluster];
 			continue;
 		}
+		pdir->parent_cluster = pdir->file_cluster;
+		pdir->parent_offset = pdir->file_offset;
 		return 0;
 	}
 	printf("allocating cluster for file metadata\n");
@@ -153,6 +155,8 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 	if (pdir->last_data_cluster!=0)
 		fat[pdir->last_data_cluster] = new_cluster;
 	pdir->last_data_cluster = new_cluster;
+	pdir->parent_cluster = pdir->file_cluster;
+	pdir->parent_offset = pdir->file_offset;
 	pdir->size+=sizeof(struct epic_file);
 	printf("creating file in cluster\n");
 	return createfile_incluster(new_cluster, pfiledata, filename, type);
@@ -220,6 +224,8 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	pfile_metadata->last_data_cluster = 0;
 	pfile_metadata->file_cluster = current_filecluster;
 	pfile_metadata->file_offset = next_free_file*sizeof(struct epic_file);
+	pfile_metadata->parent_cluster = 0;
+	pfile_metadata->parent_offset = 0;
 	pfile_metadata->inuse = 1;
 	*pfiledata = pfile_metadata;
 	next_free_file++;
