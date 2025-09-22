@@ -18,4 +18,7 @@ enum vgaColor{
 	VGA_COLOR_YELLOW,
 	VGA_COLOR_BRIGHT_WHITE,
 };
+struct vector2{
+	unsigned int x, y;
+};
 #endif

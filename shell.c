@@ -227,6 +227,20 @@ int _start(void){
 	unsigned int time_ms = sys_get_time_ms();
 	printf("Welcome to the shell!\n");
 	printf("took %dms to boot up\n", time_ms);
+	for (unsigned int i = 0;i<10;i++){
+		printf("%d, ", sys_random(0,10));
+	}
+	sys_putchar('\n');
+	struct vector2 pos = {170, 100};
+	struct vector2 size = {50, 50};
+	for (unsigned int i = 0;i<10;i++){
+		pos.x = sys_random(0, 200);
+		pos.y = sys_random(0, 200);
+		size.x = sys_random(0, 200);
+		size.y = sys_random(0, 200);
+		enum vgaColor color = (enum vgaColor)sys_random(1, 15);
+		sys_draw_rect(pos, size, color);
+	}
 	while (1){
 		char input[256] = {0};
 		scan(input, sizeof(input)-1, '\n');

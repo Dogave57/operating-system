@@ -20,6 +20,10 @@ global sys_createfile
 global sys_getfilelist
 global sys_renamefile
 global sys_get_time_ms
+global sys_writepixel
+global sys_random
+global sys_draw_rect
+global sys_sleep
 sys_putchar:
 xor edx, edx
 int 90h
@@ -106,5 +110,21 @@ int 90h
 ret
 sys_get_time_ms:
 mov edx, 21
+int 90h
+ret
+sys_writepixel:
+mov edx, 22
+int 90h
+ret
+sys_random:
+mov edx, 23
+int 90h
+ret
+sys_draw_rect:
+mov edx, 24
+int 90h
+ret
+sys_sleep:
+mov edx, 25
 int 90h
 ret

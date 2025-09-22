@@ -6,6 +6,7 @@
 #include "stdlib.h"
 #include "timer.h"
 unsigned int time_ms = 0;
+unsigned int xor_state = 0;
 struct scheduler_task_info_t scheduler_info = {0};
 __attribute__((cdecl)) void timer_interrupt(uint32_t edi, uint32_t esi, uint32_t ebp, uint32_t esp, uint32_t ebx, uint32_t edx, uint32_t ecx, uint32_t eax, uint32_t eip, uint32_t cs, uint32_t flags){
 	time_ms++;
@@ -118,4 +119,14 @@ void sleep(unsigned int ms){
 void set_multithreading(unsigned int value){
 	scheduler_info.multithread_enabled = value;
 	return;
+}
+unsigned int random(unsigned int min, unsigned int max){
+	if (!xor_state)
+		xor_state = time_ms;
+	unsigned int x = xor_state;
+	x ^= x <<13;
+	x ^= x >> 17;
+	x ^= x << 5;
+	xor_state = x;
+	return (x%(max-min))+min;
 }

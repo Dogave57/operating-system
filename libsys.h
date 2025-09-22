@@ -25,4 +25,8 @@ int sys_createfile(unsigned int drive, char* filename, enum fileType type);
 int sys_getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
 int sys_renamefile(struct file* pfile, char* newname);
 unsigned int sys_get_time_ms(void);
+int sys_writepixel(unsigned int x, unsigned int y, enum vgaColor color);
+unsigned int sys_random(unsigned int min, unsigned int max);
+int sys_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color);
+void sys_sleep(unsigned int ms);
 #endif

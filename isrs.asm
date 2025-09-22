@@ -53,6 +53,10 @@ extern load_elf
 extern getfileinfo
 extern getfilelist
 extern get_time_ms
+extern vga_write_pixel
+extern random
+extern vga_draw_rect
+extern sleep
 _start:
 
 ret
@@ -428,6 +432,13 @@ cmp edx, 20
 je renamefile
 cmp edx, 21
 je get_time_ms
-jmp syscall_end
+cmp edx, 22
+je vga_write_pixel
+cmp edx, 23
+je random
+cmp edx, 24
+je vga_draw_rect
+cmp edx, 25
+je sleep
 syscall_end:
 ret
