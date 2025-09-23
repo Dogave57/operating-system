@@ -37,4 +37,5 @@ struct object* sys_add_object(struct vector2 position, struct vector2 size, enum
 int sys_remove_object(struct object* pobject);
 int sys_render_objects(void);
 unsigned int sys_keypressed(unsigned char key);
+void sys_set_bg(enum vgaColor color);
 #endif

@@ -30,6 +30,7 @@ void print(const char* str);
 void putchar(char ch);
 void puthex(unsigned char hex, unsigned char lower);
 void clear();
+void vga_set_bg(enum vgaColor color);
 int vga_init_objects(void);
 int vga_deinit_objects(void);
 struct object* vga_add_object(struct vector2 position, struct vector2 size, enum objType type);

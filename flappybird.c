@@ -1,6 +1,8 @@
 #include "stdlib.h"
 #include "libsys.h"
+#include "vga.h"
 int _start(void){
+	sys_set_bg(VGA_COLOR_LIGHT_BLUE);
 	sys_clear();
 	printf("Welcome to flappy bird\n");
 	if (sys_init_objects()!=0){
@@ -15,13 +17,9 @@ int _start(void){
 		return -1;
 	}
 	bird->color = VGA_COLOR_RED;
-	pos.x = 0;
-	pos.y = 0;
-	size.x = 340;
-	size.y = 200;
-	sys_draw_rect(pos, size, VGA_COLOR_BLUE);
+	sys_render_objects();
 	while (1){
-		sys_sleep(10);
+		sys_sleep(5);
 		if (!sys_keypressed('w')&&!sys_keypressed('a')&&!sys_keypressed('s')&&!sys_keypressed('d')&&!sys_keypressed(' ')&&!sys_keypressed('\b'))
 			continue;
 		if (sys_keypressed('w'))
@@ -36,7 +34,7 @@ int _start(void){
 			bird->size.x++;
 			bird->size.y++;
 		}
-		if (sys_keypressed('\n')){
+		if (sys_keypressed('\b')){
 			bird->size.x--;
 			bird->size.y--;
 		}

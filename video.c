@@ -17,7 +17,7 @@ unsigned int vga_width = 320;
 unsigned int vga_height = 200;
 unsigned int vga_attrib = 0x07;
 unsigned int vga_fg = VGA_COLOR_WHITE;
-unsigned int vga_bg = VGA_COLOR_BLACK;
+enum vgaColor vga_bg = VGA_COLOR_BLACK;
 unsigned char* font_buffer = (unsigned char*)0x0;
 void print(const char* str){
 	if (!str)
@@ -74,7 +74,7 @@ void clear(void){
 	enum vgaColor colors[] = {VGA_COLOR_LIGHT_RED, VGA_COLOR_LIGHT_GREEN, VGA_COLOR_LIGHT_BLUE};
 	for (unsigned int i = 0;i<vga_width*vga_height;i++){
 		//vga_buffer[i] = colors[random(0, sizeof(colors)/sizeof(colors[0]))];
-		vga_buffer[i] = VGA_COLOR_BLACK;
+		vga_buffer[i] = vga_bg;
 	}
 	vgaIndex = 0;
 	cursor_setpos(0);
@@ -109,10 +109,16 @@ int vga_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color){
 	struct vector2 coords = {0};
 	for (coords.y = pos.y; coords.y<pos.y+size.y;coords.y++){
 		for (coords.x = pos.x; coords.x<pos.x+size.x;coords.x++){
+			if (coords.x>=vga_width||coords.x<=0||coords.y<=0||coords.y>=vga_height)
+				continue;
 			vga_write_pixel(coords.x, coords.y, color);
 		}
 	}	
 	return 0;
+}
+void vga_set_bg(enum vgaColor color){
+	vga_bg = color;
+	return;
 }
 int vga_init_objects(void){
 	if (objectlist){
@@ -168,13 +174,20 @@ int vga_remove_object(struct object* pobject){
 int vga_render_objects(void){
 	struct object* currentobject = objectlist;
 	while (currentobject){
-		if (currentobject->oldposition.x==currentobject->position.x&&currentobject->oldposition.x==currentobject->position.x&&currentobject->oldsize.x==currentobject->size.x&&currentobject->oldsize.y==currentobject->size.y&&currentobject->color==currentobject->oldcolor){
-		//	currentobject = currentobject->flink;
-		//	continue;
-		}
+		if (currentobject->position.x==currentobject->oldposition.x&&currentobject->position.y==currentobject->oldposition.y&&currentobject->size.x==currentobject->oldsize.x&&currentobject->size.y==currentobject->oldsize.y&&currentobject->color==currentobject->oldcolor){
+			currentobject=currentobject->flink;
+			continue;
+		}	
 		switch (currentobject->type){
 		case OBJ_RECT:	 
-		vga_draw_rect(currentobject->oldposition, currentobject->oldsize, VGA_COLOR_BLACK);
+		struct vector2 coords = {0};
+		for (coords.y = currentobject->oldposition.y;coords.y<currentobject->oldposition.y+currentobject->oldsize.y;coords.y++){
+			for (coords.x = currentobject->oldposition.x;coords.x<currentobject->oldposition.x+currentobject->oldsize.x;coords.x++){
+				if (coords.x<currentobject->position.x+currentobject->size.x&&coords.x>currentobject->position.x&&coords.y<currentobject->position.y+currentobject->size.y&&coords.y>currentobject->position.y)
+					continue;
+				vga_write_pixel(coords.x, coords.y, vga_bg);
+			}
+		}	
 		vga_draw_rect(currentobject->position, currentobject->size, currentobject->color);
 		currentobject->oldposition = currentobject->position;
 		currentobject->oldsize.x = currentobject->size.x;
@@ -204,6 +217,7 @@ int vga_init(void){
 		return -1;
 	}
 	closefile(pfile);
+	vga_bg = VGA_COLOR_BLACK;
 	for (unsigned int i = 0;i<=9;i++){
 		vga_write_char(i*4, '0'+i);
 	}

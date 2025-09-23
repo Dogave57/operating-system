@@ -31,6 +31,7 @@ global sys_add_object
 global sys_remove_object
 global sys_render_objects
 global sys_keypressed
+global sys_set_bg
 sys_putchar:
 xor edx, edx
 int 90h
@@ -161,5 +162,9 @@ int 90h
 ret
 sys_keypressed:
 mov edx, 32
+int 90h
+ret
+sys_set_bg:
+mov edx, 33
 int 90h
 ret
