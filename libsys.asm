@@ -24,6 +24,12 @@ global sys_writepixel
 global sys_random
 global sys_draw_rect
 global sys_sleep
+global sys_panic
+global sys_init_objects
+global sys_deinit_objects
+global sys_add_object
+global sys_remove_object
+global sys_render_objects
 sys_putchar:
 xor edx, edx
 int 90h
@@ -35,7 +41,7 @@ ret
 sys_puthex:
 mov edx, 2
 int 90h
-ret
+retn 
 sys_kmalloc:
 mov edx, 3
 int 90h
@@ -126,5 +132,29 @@ int 90h
 ret
 sys_sleep:
 mov edx, 25
+int 90h
+ret
+sys_panic:
+mov edx, 26
+int 90h
+ret
+sys_init_objects:
+mov edx, 27
+int 90h
+ret
+sys_deinit_objects:
+mov edx, 28
+int 90h
+ret
+sys_add_object:
+mov edx, 29
+int 90h
+ret
+sys_remove_object:
+mov edx, 30
+int 90h
+ret
+sys_render_objects:
+mov edx, 31
 int 90h
 ret

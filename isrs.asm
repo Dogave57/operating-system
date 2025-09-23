@@ -2,6 +2,7 @@ global default_master_isr
 global default_slave_isr
 global timer_isr
 global keyboard_isr
+global mouse_isr
 global isr0
 global isr1
 global isr2
@@ -29,6 +30,7 @@ global isr30
 global syscall_isr
 extern timer_interrupt
 extern keyboard_interrupt
+extern mouse_interrupt
 extern printf
 extern print
 extern putchar
@@ -57,6 +59,13 @@ extern vga_write_pixel
 extern random
 extern vga_draw_rect
 extern sleep
+extern panic
+extern vga_set_mode
+extern vga_init_objects
+extern vga_deinit_objects
+extern vga_add_object
+extern vga_remove_object
+extern vga_render_objects
 _start:
 
 ret
@@ -90,10 +99,22 @@ sti
 iret
 keyboard_isr:
 cli
+pusha
 call keyboard_interrupt
 mov al, 0x20
 mov dx, 0x20
 out dx, al
+popa
+sti
+iret
+mouse_isr:
+cli
+pusha
+call mouse_interrupt
+mov al, 0x20
+mov dx, 0x20
+out dx, al
+popa
 sti
 iret
 isr0:
@@ -440,5 +461,19 @@ cmp edx, 24
 je vga_draw_rect
 cmp edx, 25
 je sleep
+cmp edx, 26
+je panic
+cmp edx, 27
+je vga_init_objects
+cmp edx, 28
+je vga_deinit_objects
+cmp edx, 29
+je vga_add_object
+cmp edx, 30
+je vga_remove_object
+cmp edx, 31
+je vga_render_objects
 syscall_end:
 ret
+ebxmsg db "edx %d", 0
+msg db "calling render objects %d", 0

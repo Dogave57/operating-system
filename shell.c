@@ -1,9 +1,10 @@
 #include "stdlib.h"
 #include "filesystem.h"
+#include "video.h"
 #include "libsys.h"
 typedef void(*shellFunc)(char* cmd, unsigned int cmdlen);
 struct shelltab_entry{
-	const char* name;
+	char name[64];
 	unsigned int nameLen;
 	shellFunc pfunc;
 };
@@ -29,7 +30,9 @@ void shell_run(char* cmd, unsigned int cmdlen){
 	if (cmdlen<4||!cmd)
 		return;
 	unsigned int bootdrive = sys_getbootdrive();
+	__asm__ volatile("pusha");
 	sys_loadelf(bootdrive, cmd+4);
+	__asm__ volatile("popa");
 	return;
 }
 void shell_clear(char* cmd, unsigned int cmdlen){
@@ -188,23 +191,23 @@ void shell_help(char* cmd, unsigned int cmdlen){
 	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nlf - list files\nhelp - list commands\n");
 	return;
 }
-static struct shelltab_entry shell_table[]={
-	{"echo ", 5, shell_echo},
-	{"run ", 4, shell_run},
-	{"clear", 5, shell_clear},
-	{"file ", 5, shell_file},
-	{"rf ", 3, shell_rf},
-	{"cf ", 3, shell_cf},
-	{"cd ", 3, shell_cd},
-	{"df ", 3, shell_df},
-	{"wf ", 3, shell_wf},
-	{"lf ", 3, shell_lf},
-	{"color ", 6, shell_color},
-	{"help", 4, shell_help},
-};
 int execute_cmd(char* cmd){
 	if (!cmd)
 		return -1;
+	struct shelltab_entry shell_table[]={
+		{"echo ", 5, shell_echo},
+		{"run ", 4, shell_run},
+		{"clear", 5, shell_clear},
+		{"file ", 5, shell_file},
+		{"rf ", 3, shell_rf},
+		{"cf ", 3, shell_cf},
+		{"cd ", 3, shell_cd},
+		{"df ", 3, shell_df},
+		{"wf ", 3, shell_wf},
+		{"lf ", 3, shell_lf},
+		{"color ", 6, shell_color},
+		{"help", 4, shell_help},
+	};
 	unsigned int cmdlen = strlen(cmd);
 	unsigned int entrycnt = sizeof(shell_table)/sizeof(struct shelltab_entry);
 	for (unsigned int i = 0;i<entrycnt;i++){
@@ -227,20 +230,6 @@ int _start(void){
 	unsigned int time_ms = sys_get_time_ms();
 	printf("Welcome to the shell!\n");
 	printf("took %dms to boot up\n", time_ms);
-	for (unsigned int i = 0;i<10;i++){
-		printf("%d, ", sys_random(0,10));
-	}
-	sys_putchar('\n');
-	struct vector2 pos = {170, 100};
-	struct vector2 size = {50, 50};
-	for (unsigned int i = 0;i<10;i++){
-		pos.x = sys_random(0, 200);
-		pos.y = sys_random(0, 200);
-		size.x = sys_random(0, 200);
-		size.y = sys_random(0, 200);
-		enum vgaColor color = (enum vgaColor)sys_random(1, 15);
-		sys_draw_rect(pos, size, color);
-	}
 	while (1){
 		char input[256] = {0};
 		scan(input, sizeof(input)-1, '\n');

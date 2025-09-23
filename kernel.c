@@ -13,6 +13,7 @@
 #include "filesystem.h"
 #include "usb.h"
 #include "smbios.h"
+#include "video.h"
 #include "pci.h"
 #include "kernel.h"
 char current_char = 0;
@@ -221,7 +222,6 @@ void keyboard_interrupt(void){
 		return;
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
-	putchar(ascii);
 	switch (inputMode){
 		case IM_CMD:
 		break;	
@@ -230,6 +230,12 @@ void keyboard_interrupt(void){
 		break;
 	}
 	current_char = ascii;
+	return;
+}
+void mouse_interrupt(void){
+	if (!(inb(0x64)&1))
+		return;
+	printf("click\n");
 	return;
 }
 void set_input_mode(enum inputMode mode){

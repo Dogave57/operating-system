@@ -9,6 +9,9 @@
 #include "vga.h"
 #include "video.h"
 unsigned int vgaIndex = 0;
+struct object* objectlist = (struct object*)0x0;
+struct object* lastobject = (struct object*)0x0;
+unsigned int objectcnt = 0;
 unsigned char* vga_buffer = (unsigned char*)0xA0000;
 unsigned int vga_width = 320;
 unsigned int vga_height = 200;
@@ -71,6 +74,7 @@ void clear(void){
 	enum vgaColor colors[] = {VGA_COLOR_LIGHT_RED, VGA_COLOR_LIGHT_GREEN, VGA_COLOR_LIGHT_BLUE};
 	for (unsigned int i = 0;i<vga_width*vga_height;i++){
 		vga_buffer[i] = colors[random(0, sizeof(colors)/sizeof(colors[0]))];
+		//vga_buffer[i] = VGA_COLOR_BLACK;
 	}
 	vgaIndex = 0;
 	cursor_setpos(0);
@@ -96,8 +100,8 @@ int vga_write_char(unsigned int offset, unsigned char ch){
 	}
 	return 0;
 }
-int vga_write_pixel(unsigned int x, unsigned int y, enum vgaColor color){
-	unsigned int vga_off = (y*vga_width)+x;
+int vga_write_pixel(int x, int y, enum vgaColor color){
+	int vga_off = (y*vga_width)+x;
 	vga_buffer[vga_off] = color;
 	return 0;
 }
@@ -108,6 +112,75 @@ int vga_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color){
 			vga_write_pixel(coords.x, coords.y, color);
 		}
 	}	
+	return 0;
+}
+int vga_init_objects(void){
+	if (objectlist){
+		if (vga_deinit_objects()!=0)
+			return -1;
+	}
+	objectcnt = 0;
+	return 0;	
+}
+int vga_deinit_objects(void){
+	if (!objectlist)
+		return 0;
+	struct object* currentobject = objectlist;
+	while (currentobject){
+		struct object* flink = currentobject->flink;
+		kfree((void*)currentobject);
+		currentobject = flink;
+	}
+	objectlist = (struct object*)0x0;
+	objectcnt = 0;
+	return 0;
+}
+struct object* vga_add_object(struct vector2 position, struct vector2 size, enum objType type){
+	struct object* newobject = (struct object*)kmalloc(sizeof(struct object));
+	if (!newobject)
+		return (struct object*)0x0;
+	memset((void*)newobject, 0, sizeof(struct object));
+	newobject->position = position;
+	newobject->size = size;
+	newobject->type = type;
+	if (!objectlist){
+		objectlist = newobject;
+		return newobject;
+	}
+	if (!lastobject){
+		lastobject = newobject;
+		return newobject;
+	}
+	lastobject->flink = newobject;
+	newobject->blink = lastobject;
+	lastobject = newobject;
+	return newobject;
+}
+int vga_remove_object(struct object* pobject){
+	if (!pobject)
+		return -1;
+	if (pobject->blink)
+		pobject->blink->flink = pobject->flink;
+	if (pobject->flink)
+		pobject->flink->blink = pobject->blink;
+	return 0;	
+}
+int vga_render_objects(void){
+	struct object* currentobject = objectlist;
+	while (currentobject){
+		if (currentobject->oldposition.x==currentobject->position.x&&currentobject->oldposition.x==currentobject->position.x&&currentobject->oldsize.x==currentobject->size.x&&currentobject->oldsize.y==currentobject->size.y&&currentobject->color==currentobject->oldcolor)
+			continue;
+		switch (currentobject->type){
+		case OBJ_RECT:	
+		vga_draw_rect(currentobject->oldposition, currentobject->oldsize, VGA_COLOR_BLACK);
+		vga_draw_rect(currentobject->position, currentobject->size, currentobject->color);
+		currentobject->oldposition = currentobject->position;
+		currentobject->oldsize = currentobject->oldsize;
+		currentobject->oldcolor = currentobject->color;
+		break;	
+		}	
+		currentobject = currentobject->flink;
+	}
 	return 0;
 }
 int vga_init(void){

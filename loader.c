@@ -79,9 +79,10 @@ int load_elf(unsigned int drive, char* filename){
 		}
 	}
 	kfree((void*)filebuf);
-	static programEntry entry = 0;
+	programEntry entry = 0;
 	entry = (programEntry)(pimage+ehdr->entry);
 	printf("loaded program in %dms\n", time_ms-before_ms);
+	printf("program loaded at %p\n", (void*)pimage);
 	entry();
 	printf("program finished execution\n");
 	kfree((void*)pimage);

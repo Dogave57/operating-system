@@ -31,6 +31,7 @@ unsigned int sys_random(unsigned int min, unsigned int max);
 int sys_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color);
 void sys_sleep(unsigned int ms);
 void sys_panic(char* reason);
+void sys_set_vmode(enum videoMode mode);
 int sys_init_objects(void);
 int sys_deinit_objects(void);
 struct object* sys_add_object(struct vector2 position, struct vector2 size, enum objType type);
