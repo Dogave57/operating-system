@@ -16,6 +16,7 @@
 #include "video.h"
 #include "pci.h"
 #include "kernel.h"
+static unsigned char keys_pressed[256]={0};
 char current_char = 0;
 unsigned int inputMode = 0;
 unsigned char shiftPressed = 0;
@@ -215,11 +216,13 @@ void keyboard_interrupt(void){
 			shiftPressed = 0;
 		return;
 	}
-	if (scancode>sizeof(scantoascii))
-		return;
 	char ascii = scantoascii[scancode];
-	if (!ascii)
+	if (!ascii){
+		if (scancode>0x80)
+			keys_pressed[scantoascii[scancode-0x80]] = 0;
 		return;
+	}
+	keys_pressed[ascii] = 1;
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);
 	switch (inputMode){
@@ -248,6 +251,9 @@ char getchar(void){
 	char ch = current_char;
 	current_char = 0;
 	return ch;
+}
+unsigned int key_pressed(unsigned char key){
+	return keys_pressed[key];
 }
 void reboot(void){
 	__asm__ volatile("cli");

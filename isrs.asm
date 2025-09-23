@@ -66,6 +66,7 @@ extern vga_deinit_objects
 extern vga_add_object
 extern vga_remove_object
 extern vga_render_objects
+extern key_pressed
 _start:
 
 ret
@@ -473,6 +474,8 @@ cmp edx, 30
 je vga_remove_object
 cmp edx, 31
 je vga_render_objects
+cmp edx, 32
+je key_pressed
 syscall_end:
 ret
 ebxmsg db "edx %d", 0

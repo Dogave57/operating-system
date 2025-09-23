@@ -73,8 +73,8 @@ void puthex(unsigned char hex, unsigned char lower){
 void clear(void){
 	enum vgaColor colors[] = {VGA_COLOR_LIGHT_RED, VGA_COLOR_LIGHT_GREEN, VGA_COLOR_LIGHT_BLUE};
 	for (unsigned int i = 0;i<vga_width*vga_height;i++){
-		vga_buffer[i] = colors[random(0, sizeof(colors)/sizeof(colors[0]))];
-		//vga_buffer[i] = VGA_COLOR_BLACK;
+		//vga_buffer[i] = colors[random(0, sizeof(colors)/sizeof(colors[0]))];
+		vga_buffer[i] = VGA_COLOR_BLACK;
 	}
 	vgaIndex = 0;
 	cursor_setpos(0);
@@ -168,14 +168,17 @@ int vga_remove_object(struct object* pobject){
 int vga_render_objects(void){
 	struct object* currentobject = objectlist;
 	while (currentobject){
-		if (currentobject->oldposition.x==currentobject->position.x&&currentobject->oldposition.x==currentobject->position.x&&currentobject->oldsize.x==currentobject->size.x&&currentobject->oldsize.y==currentobject->size.y&&currentobject->color==currentobject->oldcolor)
-			continue;
+		if (currentobject->oldposition.x==currentobject->position.x&&currentobject->oldposition.x==currentobject->position.x&&currentobject->oldsize.x==currentobject->size.x&&currentobject->oldsize.y==currentobject->size.y&&currentobject->color==currentobject->oldcolor){
+		//	currentobject = currentobject->flink;
+		//	continue;
+		}
 		switch (currentobject->type){
-		case OBJ_RECT:	
+		case OBJ_RECT:	 
 		vga_draw_rect(currentobject->oldposition, currentobject->oldsize, VGA_COLOR_BLACK);
 		vga_draw_rect(currentobject->position, currentobject->size, currentobject->color);
 		currentobject->oldposition = currentobject->position;
-		currentobject->oldsize = currentobject->oldsize;
+		currentobject->oldsize.x = currentobject->size.x;
+		currentobject->oldsize.y = currentobject->size.y;
 		currentobject->oldcolor = currentobject->color;
 		break;	
 		}	

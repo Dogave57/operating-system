@@ -30,6 +30,7 @@ global sys_deinit_objects
 global sys_add_object
 global sys_remove_object
 global sys_render_objects
+global sys_keypressed
 sys_putchar:
 xor edx, edx
 int 90h
@@ -156,5 +157,9 @@ int 90h
 ret
 sys_render_objects:
 mov edx, 31
+int 90h
+ret
+sys_keypressed:
+mov edx, 32
 int 90h
 ret

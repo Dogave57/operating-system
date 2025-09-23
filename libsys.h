@@ -36,4 +36,5 @@ int sys_deinit_objects(void);
 struct object* sys_add_object(struct vector2 position, struct vector2 size, enum objType type);
 int sys_remove_object(struct object* pobject);
 int sys_render_objects(void);
+unsigned int sys_keypressed(unsigned char key);
 #endif
