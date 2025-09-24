@@ -49,7 +49,6 @@ extern kfree
 extern exception_handler
 extern getbootdrive
 extern getchar
-extern set_input_mode
 extern vga_set_color
 extern load_elf
 extern getfileinfo
@@ -63,14 +62,13 @@ extern panic
 extern vga_set_mode
 extern vga_init_objects
 extern vga_deinit_objects
-extern vga_add_object
+extern vga_add_rect
 extern vga_remove_object
 extern vga_render_objects
 extern key_pressed
 extern vga_set_bg
-_start:
-
-ret
+extern vga_add_text
+extern vga_read_pixel
 default_master_isr:
 cli
 pusha
@@ -440,45 +438,47 @@ je clear
 cmp edx, 13
 je getchar
 cmp edx, 14
-je set_input_mode
-cmp edx, 15
 je vga_set_color
-cmp edx, 16
+cmp edx, 15
 je load_elf
-cmp edx, 17
+cmp edx, 16
 je getfileinfo
-cmp edx, 18
+cmp edx, 17
 je createfile
-cmp edx, 19
+cmp edx, 18
 je getfilelist
-cmp edx, 20
+cmp edx, 19
 je renamefile
-cmp edx, 21
+cmp edx, 20
 je get_time_ms
-cmp edx, 22
+cmp edx, 21
 je vga_write_pixel
-cmp edx, 23
+cmp edx, 22
 je random
-cmp edx, 24
+cmp edx, 23
 je vga_draw_rect
-cmp edx, 25
+cmp edx, 24
 je sleep
-cmp edx, 26
+cmp edx, 25
 je panic
-cmp edx, 27
+cmp edx, 26
 je vga_init_objects
-cmp edx, 28
+cmp edx, 27
 je vga_deinit_objects
+cmp edx, 28
+je vga_add_rect
 cmp edx, 29
-je vga_add_object
-cmp edx, 30
 je vga_remove_object
-cmp edx, 31
+cmp edx, 30
 je vga_render_objects
-cmp edx, 32
+cmp edx, 31
 je key_pressed
-cmp edx, 33
+cmp edx, 32
 je vga_set_bg
+cmp edx, 33
+je vga_add_text
+cmp edx, 34
+je vga_read_pixel
 syscall_end:
 ret
 ebxmsg db "edx %d", 0

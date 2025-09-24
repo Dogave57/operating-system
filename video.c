@@ -105,6 +105,10 @@ int vga_write_pixel(int x, int y, enum vgaColor color){
 	vga_buffer[vga_off] = color;
 	return 0;
 }
+enum vgaColor vga_read_pixel(int x, int y){
+	int vga_off = (y*vga_width)+x;
+	return vga_buffer[vga_off];
+}
 int vga_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color){
 	struct vector2 coords = {0};
 	for (coords.y = pos.y; coords.y<pos.y+size.y;coords.y++){
@@ -141,26 +145,53 @@ int vga_deinit_objects(void){
 	objectcnt = 0;
 	return 0;
 }
-struct object* vga_add_object(struct vector2 position, struct vector2 size, enum objType type){
-	struct object* newobject = (struct object*)kmalloc(sizeof(struct object));
+struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size){
+	struct object_rect* newobject = (struct object_rect*)kmalloc(sizeof(struct object_rect));
 	if (!newobject)
-		return (struct object*)0x0;
-	memset((void*)newobject, 0, sizeof(struct object));
+		return (struct object_rect*)0x0;
+	memset((void*)newobject, 0, sizeof(struct object_rect));
+	newobject->flink = (struct object*)0x0;
 	newobject->position = position;
 	newobject->size = size;
-	newobject->type = type;
+	newobject->type = OBJ_RECT;
 	if (!objectlist){
-		objectlist = newobject;
+		objectlist = (struct object*)newobject;
+		lastobject = (struct object*)newobject;
 		return newobject;
 	}
 	if (!lastobject){
-		lastobject = newobject;
+		lastobject = (struct object*)newobject;
 		return newobject;
 	}
-	lastobject->flink = newobject;
-	newobject->blink = lastobject;
-	lastobject = newobject;
+	lastobject->flink = (struct object*)newobject;
+	newobject->blink = (struct object*)lastobject;
+	lastobject = (struct object*)newobject;
 	return newobject;
+}
+struct object_text* vga_add_text(struct vector2 position, char* text){
+	if (!text)
+		return (struct object_text*)0x0;
+	struct object_text* textobj = (struct object_text*)kmalloc(sizeof(struct object_text));
+	if (!text)
+		return (struct object_text*)0x0;
+	memset((void*)textobj, 0, sizeof(struct object_text));
+	textobj->flink = (struct object*)0x0;
+	textobj->position = position;
+	textobj->text = text;
+	textobj->type = OBJ_TEXT;
+	if (!objectlist){
+		objectlist = (struct object*)textobj;
+		lastobject = (struct object*)textobj;
+		return textobj;
+	}
+	if (!lastobject){
+		lastobject = (struct object*)textobj;
+		return textobj;
+	}
+	lastobject->flink = (struct object*)textobj;
+	textobj->blink = lastobject;
+	lastobject = (struct object*)textobj;
+	return textobj;
 }
 int vga_remove_object(struct object* pobject){
 	if (!pobject)
@@ -174,26 +205,50 @@ int vga_remove_object(struct object* pobject){
 int vga_render_objects(void){
 	struct object* currentobject = objectlist;
 	while (currentobject){
-		if (currentobject->position.x==currentobject->oldposition.x&&currentobject->position.y==currentobject->oldposition.y&&currentobject->size.x==currentobject->oldsize.x&&currentobject->size.y==currentobject->oldsize.y&&currentobject->color==currentobject->oldcolor){
-			currentobject=currentobject->flink;
-			continue;
-		}	
 		switch (currentobject->type){
 		case OBJ_RECT:	 
+		struct object_rect* rect = (struct object_rect*)currentobject;
+	//	if (rect->position.x==rect->oldposition.x&&rect->position.y==rect->oldposition.x&&rect->size.x==rect->oldsize.y&&rect->size.y==rect->oldsize.y&&rect->color==rect->oldcolor)
+	//		break;
 		struct vector2 coords = {0};
-		for (coords.y = currentobject->oldposition.y;coords.y<currentobject->oldposition.y+currentobject->oldsize.y;coords.y++){
-			for (coords.x = currentobject->oldposition.x;coords.x<currentobject->oldposition.x+currentobject->oldsize.x;coords.x++){
-				if (coords.x<currentobject->position.x+currentobject->size.x&&coords.x>currentobject->position.x&&coords.y<currentobject->position.y+currentobject->size.y&&coords.y>currentobject->position.y)
+		for (coords.y = rect->oldposition.y;coords.y<rect->oldposition.y+rect->oldsize.y;coords.y++){
+			for (coords.x = rect->oldposition.x;coords.x<rect->oldposition.x+rect->oldsize.x;coords.x++){
+				if (coords.x<rect->position.x+rect->size.x&&coords.x>rect->position.x&&coords.y<rect->position.y+rect->size.y&&coords.y>rect->position.y)
+					continue;
+				if (vga_read_pixel(coords.x, coords.y)!=rect->oldcolor)
 					continue;
 				vga_write_pixel(coords.x, coords.y, vga_bg);
 			}
 		}	
-		vga_draw_rect(currentobject->position, currentobject->size, currentobject->color);
-		currentobject->oldposition = currentobject->position;
-		currentobject->oldsize.x = currentobject->size.x;
-		currentobject->oldsize.y = currentobject->size.y;
-		currentobject->oldcolor = currentobject->color;
+		vga_draw_rect(rect->position, rect->size, rect->color);
+		rect->oldposition = rect->position;
+		rect->oldsize.x = rect->size.x;
+		rect->oldsize.y = rect->size.y;
+		rect->oldcolor = rect->color;
 		break;	
+		case OBJ_TEXT:
+		struct object_text* text = (struct object_text*)currentobject;
+	//	if (text->position.x==text->oldposition.x&&text->position.y==text->oldposition.y&&text->color==text->oldcolor||!text->text)
+	//		break;
+		unsigned int index = 0;
+		for (unsigned int i = 0;;i++){
+			unsigned char ch = text->text[i];
+			if (!ch)
+				break;
+			if (ch=='\n'){
+				index+=320/8;
+				index-=index%(320/8);
+				continue;
+			}
+			unsigned int line = index/(320/8);
+			unsigned int offset = (index*8)+(line*320*8);
+			vga_write_char((text->position.y*vga_width)+text->position.x+offset, ch);
+			index++;
+		}
+		text->oldposition.x = text->position.x;
+		text->oldposition.y = text->position.y;
+		text->oldcolor = text->color;
+		break;
 		}	
 		currentobject = currentobject->flink;
 	}

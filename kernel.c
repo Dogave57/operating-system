@@ -16,7 +16,7 @@
 #include "video.h"
 #include "pci.h"
 #include "kernel.h"
-static unsigned char keys_pressed[256]={0};
+static unsigned char keys_pressed[512]={0};
 char current_char = 0;
 unsigned int inputMode = 0;
 unsigned char shiftPressed = 0;
@@ -203,35 +203,40 @@ void keyboard_interrupt(void){
 	switch (scancode){
 		case 0x3A:
 			capsPressed = 1;
-			break;
+			keys_pressed[scancode] = 1;
+		return;
 		case 0xBA:
 			capsPressed = 0;
-			break;
+		return;
 		case 0x2A:
 		case 0x36:
 			shiftPressed = 1;	
+			keys_pressed[scancode] = 1;
 		return;
 		case 0xAA:
 		case 0xB6:
 			shiftPressed = 0;
 		return;
+		case 0x1D:
+			keys_pressed[KEY_ESC] = 1;
+		return;
+		case 0x9D:
+			keys_pressed[KEY_ESC] = 0;
+		return;
 	}
 	char ascii = scantoascii[scancode];
 	if (!ascii){
-		if (scancode>0x80)
+		if (scancode>0x80&&scantoascii[scancode-0x80])
 			keys_pressed[scantoascii[scancode-0x80]] = 0;
+		if (!scantoascii[scancode]&&scancode<0x80)
+			keys_pressed[scancode] = 1;
+		if (!scantoascii[scancode-0x80]&&scancode>0x80)
+			keys_pressed[scancode] = 0;
 		return;
 	}
 	keys_pressed[ascii] = 1;
 	if (capsPressed||shiftPressed)
-		ascii = toUpper(ascii);
-	switch (inputMode){
-		case IM_CMD:
-		break;	
-		case IM_FREE:
-
-		break;
-	}
+		ascii = toUpper(ascii);	
 	current_char = ascii;
 	return;
 }
@@ -241,10 +246,6 @@ void mouse_interrupt(void){
 	printf("click\n");
 	return;
 }
-void set_input_mode(enum inputMode mode){
-	inputMode = mode;
-	return;
-}
 char getchar(void){
 	if (!current_char)
 		return 0;
@@ -252,7 +253,7 @@ char getchar(void){
 	current_char = 0;
 	return ch;
 }
-unsigned int key_pressed(unsigned char key){
+unsigned int key_pressed(unsigned int key){
 	return keys_pressed[key];
 }
 void reboot(void){

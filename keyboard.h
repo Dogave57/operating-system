@@ -5,7 +5,7 @@ extern char current_char;
 extern enum inputMode input_mode;
 extern unsigned char shiftPressed;
 extern unsigned char capsPressed;
-static const char scantoascii[256]={
+static const char scantoascii[512]={
 [0x01] = 0,//ESC
 [0x02] = '1',
 [0x03] = '2',
@@ -93,5 +93,5 @@ static const char scantoascii[256]={
 [0x58] = 0,//F12
 };
 char getchar(void);
-unsigned int key_pressed(unsigned char key);
+unsigned int key_pressed(unsigned int key);
 #endif

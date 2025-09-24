@@ -12,7 +12,6 @@ global sys_readfile
 global sys_getbootdrive
 global sys_clear
 global sys_getchar
-global sys_set_input_mode
 global sys_set_console_color
 global sys_loadelf
 global sys_getfileinfo
@@ -27,11 +26,13 @@ global sys_sleep
 global sys_panic
 global sys_init_objects
 global sys_deinit_objects
-global sys_add_object
+global sys_add_rect
 global sys_remove_object
 global sys_render_objects
 global sys_keypressed
 global sys_set_bg
+global sys_add_text
+global sys_readpixel
 sys_putchar:
 xor edx, edx
 int 90h
@@ -88,83 +89,87 @@ sys_getchar:
 mov edx, 13
 int 90h
 ret
-sys_set_input_mode:
+sys_set_console_color:
 mov edx, 14
 int 90h
 ret
-sys_set_console_color:
+sys_loadelf:
 mov edx, 15
 int 90h
 ret
-sys_loadelf:
+sys_getfileinfo:
 mov edx, 16
 int 90h
 ret
-sys_getfileinfo:
+sys_createfile:
 mov edx, 17
 int 90h
 ret
-sys_createfile:
+sys_getfilelist:
 mov edx, 18
 int 90h
 ret
-sys_getfilelist:
+sys_renamefile:
 mov edx, 19
 int 90h
 ret
-sys_renamefile:
+sys_get_time_ms:
 mov edx, 20
 int 90h
 ret
-sys_get_time_ms:
+sys_writepixel:
 mov edx, 21
 int 90h
 ret
-sys_writepixel:
+sys_random:
 mov edx, 22
 int 90h
 ret
-sys_random:
+sys_draw_rect:
 mov edx, 23
 int 90h
 ret
-sys_draw_rect:
+sys_sleep:
 mov edx, 24
 int 90h
 ret
-sys_sleep:
+sys_panic:
 mov edx, 25
 int 90h
 ret
-sys_panic:
+sys_init_objects:
 mov edx, 26
 int 90h
 ret
-sys_init_objects:
+sys_deinit_objects:
 mov edx, 27
 int 90h
 ret
-sys_deinit_objects:
+sys_add_rect:
 mov edx, 28
 int 90h
 ret
-sys_add_object:
+sys_remove_object:
 mov edx, 29
 int 90h
 ret
-sys_remove_object:
+sys_render_objects:
 mov edx, 30
 int 90h
 ret
-sys_render_objects:
+sys_keypressed:
 mov edx, 31
 int 90h
 ret
-sys_keypressed:
+sys_set_bg:
 mov edx, 32
 int 90h
 ret
-sys_set_bg:
+sys_add_text:
 mov edx, 33
+int 90h
+ret
+sys_readpixel:
+mov edx, 34
 int 90h
 ret
