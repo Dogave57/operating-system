@@ -9,8 +9,9 @@
 #include "vga.h"
 #include "video.h"
 unsigned int vgaIndex = 0;
-struct object* objectlist = (struct object*)0x0;
-struct object* lastobject = (struct object*)0x0;
+struct frame frame_bg = {0};
+struct frame frame_middle = {0};
+struct frame frame_fg = {0};
 unsigned int objectcnt = 0;
 unsigned char* vga_buffer = (unsigned char*)0xA0000;
 unsigned int vga_width = 320;
@@ -40,11 +41,11 @@ void putchar(char ch){
 		case '\b':
 			  vgaIndex--;
 			  unsigned int line = vgaIndex/(320/8);
-			  vga_write_char((vgaIndex*8)+(320*8*line), ' ');
+			  vga_write_char((vgaIndex*8)+(320*8*line), ' ', vga_fg, vga_bg);
 		break;
 		default:{
 			unsigned int line = vgaIndex/(320/8);
-			vga_write_char((vgaIndex*8)+(320*8*line), ch);	
+			vga_write_char((vgaIndex*8)+(320*8*line), ch, vga_fg, vga_bg);	
 			vgaIndex++;
 			break;
 		}
@@ -80,7 +81,7 @@ void clear(void){
 	cursor_setpos(0);
 	return;
 }
-int vga_write_char(unsigned int offset, unsigned char ch){
+int vga_write_char(unsigned int offset, unsigned char ch, enum vgaColor fg, enum vgaColor bg){
 	if (!vga_buffer){
 		if (vga_init()!=0)
 			return -1;
@@ -93,9 +94,9 @@ int vga_write_char(unsigned int offset, unsigned char ch){
 		unsigned int font_bit = 8-(((y*8)+x)%8);
 		unsigned int isfg = pdataoff[font_byte]&(1<<font_bit);
 		if (isfg)
-			vga_buffer[vga_offset] = vga_fg;
+			vga_buffer[vga_offset] = fg;
 		else
-			vga_buffer[vga_offset] = vga_bg;
+			vga_buffer[vga_offset] = bg;
 		}
 	}
 	return 0;
@@ -125,27 +126,27 @@ void vga_set_bg(enum vgaColor color){
 	return;
 }
 int vga_init_objects(void){
-	if (objectlist){
-		if (vga_deinit_objects()!=0)
-			return -1;
-	}
-	objectcnt = 0;
 	return 0;	
 }
-int vga_deinit_objects(void){
-	if (!objectlist)
-		return 0;
-	struct object* currentobject = objectlist;
+int vga_deinit_frame(struct frame* pframe){
+	if (!pframe)
+		return -1;
+	struct object* currentobject = pframe->objlist;
 	while (currentobject){
 		struct object* flink = currentobject->flink;
 		kfree((void*)currentobject);
 		currentobject = flink;
 	}
-	objectlist = (struct object*)0x0;
-	objectcnt = 0;
+	pframe->objlist = (struct object*)0x0;
 	return 0;
 }
-struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size){
+int vga_deinit_objects(void){
+	vga_deinit_frame(&frame_bg);
+	vga_deinit_frame(&frame_middle);
+	vga_deinit_frame(&frame_fg);
+	return 0;
+}
+struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size, enum frameType frame){
 	struct object_rect* newobject = (struct object_rect*)kmalloc(sizeof(struct object_rect));
 	if (!newobject)
 		return (struct object_rect*)0x0;
@@ -154,21 +155,28 @@ struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size){
 	newobject->position = position;
 	newobject->size = size;
 	newobject->type = OBJ_RECT;
-	if (!objectlist){
-		objectlist = (struct object*)newobject;
-		lastobject = (struct object*)newobject;
+	objectcnt++;
+	struct frame* frame_map[] = {
+	[FRAME_BG] = &frame_bg,
+	[FRAME_MIDDLE] = &frame_middle,
+	[FRAME_FG] = &frame_fg,
+	};
+	struct frame* frame_mapping = frame_map[frame];
+	if (!frame_mapping->objlist){
+		frame_mapping->objlist = (struct object*)newobject;
+		frame_mapping->lastobj = (struct object*)newobject;
 		return newobject;
 	}
-	if (!lastobject){
-		lastobject = (struct object*)newobject;
+	if (!frame_mapping->lastobj){
+		frame_mapping->lastobj = (struct object*)newobject;
 		return newobject;
 	}
-	lastobject->flink = (struct object*)newobject;
-	newobject->blink = (struct object*)lastobject;
-	lastobject = (struct object*)newobject;
+	frame_mapping->lastobj->flink = (struct object*)newobject;
+	newobject->blink = (struct object*)frame_mapping->lastobj;
+	frame_mapping->lastobj = (struct object*)newobject;
 	return newobject;
 }
-struct object_text* vga_add_text(struct vector2 position, char* text){
+struct object_text* vga_add_text(struct vector2 position, char* text, enum frameType frame){
 	if (!text)
 		return (struct object_text*)0x0;
 	struct object_text* textobj = (struct object_text*)kmalloc(sizeof(struct object_text));
@@ -179,18 +187,25 @@ struct object_text* vga_add_text(struct vector2 position, char* text){
 	textobj->position = position;
 	textobj->text = text;
 	textobj->type = OBJ_TEXT;
-	if (!objectlist){
-		objectlist = (struct object*)textobj;
-		lastobject = (struct object*)textobj;
+	objectcnt++;
+	struct frame* frame_map[] = {
+	[FRAME_BG] = &frame_bg,
+	[FRAME_MIDDLE] = &frame_middle,
+	[FRAME_FG] = &frame_fg,
+	};
+	struct frame* frame_mapping = frame_map[frame];
+	if (!frame_mapping->objlist){
+		frame_mapping->objlist = (struct object*)textobj;
+		frame_mapping->lastobj = (struct object*)textobj;
 		return textobj;
 	}
-	if (!lastobject){
-		lastobject = (struct object*)textobj;
+	if (!frame_mapping->lastobj){
+		frame_mapping->lastobj = (struct object*)textobj;
 		return textobj;
 	}
-	lastobject->flink = (struct object*)textobj;
-	textobj->blink = lastobject;
-	lastobject = (struct object*)textobj;
+	frame_mapping->lastobj->flink = (struct object*)textobj;
+	textobj->blink = frame_mapping->lastobj;
+	frame_mapping->lastobj = (struct object*)textobj;
 	return textobj;
 }
 int vga_remove_object(struct object* pobject){
@@ -200,10 +215,13 @@ int vga_remove_object(struct object* pobject){
 		pobject->blink->flink = pobject->flink;
 	if (pobject->flink)
 		pobject->flink->blink = pobject->blink;
+	objectcnt--;
 	return 0;	
 }
-int vga_render_objects(void){
-	struct object* currentobject = objectlist;
+int vga_render_frame(struct frame* pframe){
+	if (!pframe)
+		return -1;
+	struct object* currentobject = pframe->objlist;
 	while (currentobject){
 		switch (currentobject->type){
 		case OBJ_RECT:	 
@@ -242,7 +260,7 @@ int vga_render_objects(void){
 			}
 			unsigned int line = index/(320/8);
 			unsigned int offset = (index*8)+(line*320*8);
-			vga_write_char((text->position.y*vga_width)+text->position.x+offset, ch);
+			vga_write_char((text->position.y*vga_width)+text->position.x+offset, ch, text->color, vga_bg);
 			index++;
 		}
 		text->oldposition.x = text->position.x;
@@ -252,6 +270,12 @@ int vga_render_objects(void){
 		}	
 		currentobject = currentobject->flink;
 	}
+	return 0;
+}
+int vga_render_objects(void){
+	vga_render_frame(&frame_bg);
+	vga_render_frame(&frame_middle);
+	vga_render_frame(&frame_fg);
 	return 0;
 }
 int vga_init(void){
@@ -274,7 +298,7 @@ int vga_init(void){
 	closefile(pfile);
 	vga_bg = VGA_COLOR_BLACK;
 	for (unsigned int i = 0;i<=9;i++){
-		vga_write_char(i*4, '0'+i);
+		vga_write_char(i*4, '0'+i, vga_fg, vga_bg);
 	}
 	return 0;
 }

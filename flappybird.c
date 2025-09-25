@@ -11,7 +11,7 @@ int _start(void){
 	}
 	struct vector2 pos = {170,100};
 	struct vector2 size = {50,50};
-	struct object_rect* bird = sys_add_rect(pos, size);
+	struct object_rect* bird = sys_add_rect(pos, size, FRAME_FG);
 	if (!bird){
 		printf("failed to create bird\n");
 		return -1;
@@ -22,10 +22,24 @@ int _start(void){
 	size.x = 75;
 	size.y = 50;
 	static char* text = "Welcome to flappy bird!\ntest\ntest2";
-	struct object_text* welcome = sys_add_text(pos, text);
+	struct object_text* welcome = sys_add_text(pos, text, FRAME_MIDDLE);
 	if (!welcome){
 		printf("failed to create welcome text\n");
 		return -1;
+	}
+	pos.x = 0;
+	pos.y = 100;
+	size.x = 40;
+	size.y = 40;
+	for (unsigned int i = 0;i<10;i++){
+		struct object_rect* newrect = sys_add_rect(pos, size, FRAME_MIDDLE);
+		newrect->color = sys_random(11, 15);
+		struct vector2 textpos = {0};
+		textpos.x = pos.x+(size.x/2);
+		textpos.y = pos.y+(size.y/2);
+		struct object_text* newtext = sys_add_text(textpos, "aa", FRAME_MIDDLE);
+		newtext->color = VGA_COLOR_BLACK;
+		pos.x+=size.x;
 	}
 	sys_render_objects();
 	while (1){
