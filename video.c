@@ -146,6 +146,23 @@ int vga_deinit_objects(void){
 	vga_deinit_frame(&frame_fg);
 	return 0;
 }
+int vga_add_object(struct frame* pframe, struct object* pobject){
+	if (!pframe||!pobject)
+		return -1;
+	if (!pframe->objlist){
+		pframe->objlist = pobject;
+		pframe->lastobj = pobject;
+		return 0;
+	}
+	if (!pframe->lastobj){
+		pframe->lastobj = pobject;
+		return 0;
+	}
+	pframe->lastobj->flink = pobject;
+	pobject->blink = pframe->lastobj;
+	pframe->lastobj = pobject;
+	return 0;
+}
 struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size, enum frameType frame){
 	struct object_rect* newobject = (struct object_rect*)kmalloc(sizeof(struct object_rect));
 	if (!newobject)
@@ -154,6 +171,7 @@ struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size, e
 	newobject->flink = (struct object*)0x0;
 	newobject->position = position;
 	newobject->size = size;
+	newobject->ssize = sizeof(struct object_rect);
 	newobject->type = OBJ_RECT;
 	objectcnt++;
 	struct frame* frame_map[] = {
@@ -162,18 +180,8 @@ struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size, e
 	[FRAME_FG] = &frame_fg,
 	};
 	struct frame* frame_mapping = frame_map[frame];
-	if (!frame_mapping->objlist){
-		frame_mapping->objlist = (struct object*)newobject;
-		frame_mapping->lastobj = (struct object*)newobject;
-		return newobject;
-	}
-	if (!frame_mapping->lastobj){
-		frame_mapping->lastobj = (struct object*)newobject;
-		return newobject;
-	}
-	frame_mapping->lastobj->flink = (struct object*)newobject;
-	newobject->blink = (struct object*)frame_mapping->lastobj;
-	frame_mapping->lastobj = (struct object*)newobject;
+	if (vga_add_object(frame_mapping, (struct object*)newobject)!=0)
+		return (struct object_rect*)0x0;
 	return newobject;
 }
 struct object_text* vga_add_text(struct vector2 position, char* text, enum frameType frame){
@@ -187,6 +195,7 @@ struct object_text* vga_add_text(struct vector2 position, char* text, enum frame
 	textobj->position = position;
 	textobj->text = text;
 	textobj->type = OBJ_TEXT;
+	textobj->ssize = sizeof(struct object_text);
 	objectcnt++;
 	struct frame* frame_map[] = {
 	[FRAME_BG] = &frame_bg,
@@ -194,19 +203,31 @@ struct object_text* vga_add_text(struct vector2 position, char* text, enum frame
 	[FRAME_FG] = &frame_fg,
 	};
 	struct frame* frame_mapping = frame_map[frame];
-	if (!frame_mapping->objlist){
-		frame_mapping->objlist = (struct object*)textobj;
-		frame_mapping->lastobj = (struct object*)textobj;
-		return textobj;
-	}
-	if (!frame_mapping->lastobj){
-		frame_mapping->lastobj = (struct object*)textobj;
-		return textobj;
-	}
-	frame_mapping->lastobj->flink = (struct object*)textobj;
-	textobj->blink = frame_mapping->lastobj;
-	frame_mapping->lastobj = (struct object*)textobj;
+	if (vga_add_object(frame_mapping, (struct object*)textobj)!=0)
+		return (struct object_text*)0x0;
 	return textobj;
+}
+struct object_vertices* vga_add_vertices(struct vector2* pvertices, unsigned int vertices_size,enum frameType frame){
+	if (!pvertices)
+		return (struct object_vertices*)0x0;	
+	struct object_vertices* newobj = (struct object_vertices*)kmalloc(sizeof(struct object_vertices));
+	if (!newobj){
+		return (struct object_vertices*)0x0;
+	}
+	memset((void*)newobj, 0, sizeof(struct object_vertices));
+	newobj->type = OBJ_VERTICES;
+	newobj->ssize = sizeof(struct object_vertices);	
+	newobj->pvertices = pvertices;
+	newobj->vertices_size = vertices_size;
+	struct frame* frame_map[]={
+	[FRAME_BG] = &frame_bg,
+	[FRAME_MIDDLE] = &frame_middle,
+	[FRAME_FG] = &frame_fg,
+	};
+	struct frame* frame_mapping = frame_map[frame];
+	if (vga_add_object(frame_mapping, (struct object*)newobj)!=0)
+		return (struct object_vertices*)0x0;
+	return newobj;
 }
 int vga_remove_object(struct object* pobject){
 	if (!pobject)
@@ -226,8 +247,6 @@ int vga_render_frame(struct frame* pframe){
 		switch (currentobject->type){
 		case OBJ_RECT:	 
 		struct object_rect* rect = (struct object_rect*)currentobject;
-	//	if (rect->position.x==rect->oldposition.x&&rect->position.y==rect->oldposition.x&&rect->size.x==rect->oldsize.y&&rect->size.y==rect->oldsize.y&&rect->color==rect->oldcolor)
-	//		break;
 		struct vector2 coords = {0};
 		for (coords.y = rect->oldposition.y;coords.y<rect->oldposition.y+rect->oldsize.y;coords.y++){
 			for (coords.x = rect->oldposition.x;coords.x<rect->oldposition.x+rect->oldsize.x;coords.x++){
@@ -246,8 +265,6 @@ int vga_render_frame(struct frame* pframe){
 		break;	
 		case OBJ_TEXT:
 		struct object_text* text = (struct object_text*)currentobject;
-	//	if (text->position.x==text->oldposition.x&&text->position.y==text->oldposition.y&&text->color==text->oldcolor||!text->text)
-	//		break;
 		unsigned int index = 0;
 		for (unsigned int i = 0;;i++){
 			unsigned char ch = text->text[i];
@@ -266,6 +283,41 @@ int vga_render_frame(struct frame* pframe){
 		text->oldposition.x = text->position.x;
 		text->oldposition.y = text->position.y;
 		text->oldcolor = text->color;
+		break;
+		case OBJ_VERTICES:
+		struct object_vertices* vertices = (struct object_vertices*)currentobject;
+		struct vector2* plastpoint = (struct vector2*)0x0;
+		unsigned int vertexcnt = vertices->vertices_size/sizeof(struct vector2);
+		for (unsigned int i = 1;i<vertexcnt;i++){
+			struct vector2* pvertex = vertices->pvertices+i;
+			struct vector2* plastvertex = vertices->pvertices+i-1;
+			struct vector2 dt = {plastvertex->x-pvertex->x, plastvertex->y-pvertex->y};
+			if (dt.x<0)
+				dt.x*=-1;
+			if (dt.y<0)
+				dt.y*=-1;
+			vga_write_char((pvertex->y*vga_width)+pvertex->x, 'a', vga_fg, vga_bg);
+			vga_write_char((plastvertex->y*vga_width)+plastvertex->x, 'a', vga_fg, vga_bg);
+			struct vector2 coords = {0};
+			for (;;){
+				if (coords.x<=dt.x){
+				coords.x++;
+				}	
+				if (coords.y<=dt.y){
+				coords.y++;
+				}
+				if (coords.x>dt.x&&coords.y>dt.y){
+				break;
+				}
+				struct vector2* xvec = pvertex;
+				if (pvertex->x>plastvertex->x)
+					xvec = plastvertex;
+				struct vector2* yvec = pvertex;
+				if (pvertex->y>plastvertex->y)
+					yvec = plastvertex;
+				vga_write_pixel(xvec->x+coords.x,yvec->y+coords.y, VGA_COLOR_BLACK);
+			}
+		}	
 		break;
 		}	
 		currentobject = currentobject->flink;

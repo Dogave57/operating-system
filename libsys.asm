@@ -33,6 +33,10 @@ global sys_keypressed
 global sys_set_bg
 global sys_add_text
 global sys_readpixel
+global sys_add_vertices
+global sys_playsound
+global sys_stopsound
+global sys_beep
 sys_putchar:
 xor edx, edx
 int 90h
@@ -171,5 +175,21 @@ int 90h
 ret
 sys_readpixel:
 mov edx, 34
+int 90h
+ret
+sys_add_vertices:
+mov edx, 35
+int 90h
+ret
+sys_playsound:
+mov edx, 36
+int 90h
+ret
+sys_stopsound:
+mov edx, 37
+int 90h
+ret
+sys_beep:
+mov edx, 38
 int 90h
 ret

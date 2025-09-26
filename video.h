@@ -5,6 +5,7 @@ enum objType{
 	OBJ_INVALID,
 	OBJ_RECT,
 	OBJ_TEXT,
+	OBJ_VERTICES,
 };
 enum frameType{
 	FRAME_INVALID,
@@ -49,6 +50,14 @@ struct object_text{
 	unsigned char oldcolor;
 	char* text;
 };
+struct object_vertices{
+	enum objType type;
+	unsigned int ssize;
+	struct object* blink;
+	struct object* flink;
+	struct vector2* pvertices;
+	unsigned int vertices_size;
+};
 extern unsigned int objectcnt;
 extern unsigned char* vga_buffer;
 extern unsigned int vga_width;
@@ -62,8 +71,10 @@ void vga_set_bg(enum vgaColor color);
 int vga_init_objects(void);
 int vga_deinit_frame(struct frame* pframe);
 int vga_deinit_objects(void);
+int vga_add_object(struct frame* pframe, struct object* pobject);
 struct object_rect* vga_add_rect(struct vector2 position, struct vector2 size, enum frameType frame);
 struct object_text* vga_add_text(struct vector2 position, char* text, enum frameType frame);
+struct object_vertices* vga_add_vertices(struct vector2* vertices,unsigned int vertices_size, enum frameType frame);
 int vga_remove_object(struct object* pobject);
 int vga_init(void);
 int vga_write_char(unsigned int offset, unsigned char ch, enum vgaColor fg, enum vgaColor bg);

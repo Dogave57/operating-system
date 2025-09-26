@@ -39,4 +39,8 @@ int sys_render_objects(void);
 unsigned int sys_keypressed(unsigned int key);
 void sys_set_bg(enum vgaColor color);
 enum vgaColor sys_readpixel(int x, int y);
+struct object_vertices* sys_add_vertices(struct vector2* pvertices, unsigned int vertices_size, enum frameType frame);
+int sys_playsound(unsigned int frequency);
+int sys_stopsound(void);
+int sys_beep(void);
 #endif

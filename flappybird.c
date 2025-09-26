@@ -27,20 +27,6 @@ int _start(void){
 		printf("failed to create welcome text\n");
 		return -1;
 	}
-	pos.x = 0;
-	pos.y = 100;
-	size.x = 40;
-	size.y = 40;
-	for (unsigned int i = 0;i<10;i++){
-		struct object_rect* newrect = sys_add_rect(pos, size, FRAME_MIDDLE);
-		newrect->color = sys_random(11, 15);
-		struct vector2 textpos = {0};
-		textpos.x = pos.x+(size.x/2);
-		textpos.y = pos.y+(size.y/2);
-		struct object_text* newtext = sys_add_text(textpos, "aa", FRAME_MIDDLE);
-		newtext->color = VGA_COLOR_BLACK;
-		pos.x+=size.x;
-	}
 	sys_render_objects();
 	while (1){
 		sys_sleep(5);

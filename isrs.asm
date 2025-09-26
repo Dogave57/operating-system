@@ -69,6 +69,10 @@ extern key_pressed
 extern vga_set_bg
 extern vga_add_text
 extern vga_read_pixel
+extern vga_add_vertices
+extern play_sound
+extern stop_sound
+extern beep
 default_master_isr:
 cli
 pusha
@@ -479,6 +483,14 @@ cmp edx, 33
 je vga_add_text
 cmp edx, 34
 je vga_read_pixel
+cmp edx, 35
+je vga_add_vertices
+cmp edx, 36
+je play_sound
+cmp edx, 37
+je stop_sound
+cmp edx, 38
+je beep
 syscall_end:
 ret
 ebxmsg db "edx %d", 0
