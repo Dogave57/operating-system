@@ -42,5 +42,5 @@ enum vgaColor sys_readpixel(int x, int y);
 struct object_vertices* sys_add_vertices(struct vector2* pvertices, unsigned int vertices_size, enum frameType frame);
 int sys_playsound(unsigned int frequency);
 int sys_stopsound(void);
-int sys_beep(void);
+int sys_beep(unsigned int frequency, unsigned int duration);
 #endif

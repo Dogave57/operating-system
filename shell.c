@@ -187,6 +187,10 @@ void shell_color(char* cmd, unsigned int cmdlen){
 	sys_set_console_color(color, VGA_COLOR_BLACK);
 	return;
 }
+void shell_beep(char* cmd, unsigned int cmdlen){
+	sys_beep(1000, 1000);
+	return;
+}
 void shell_help(char* cmd, unsigned int cmdlen){
 	printf("echo - print something out to the console\nrun - run a program\nclear - clear console\nfile - get file info\nrf - read file contents\ncf - create file\ndf - remove file\nwf - write file\nlf - list files\nhelp - list commands\n");
 	return;
@@ -206,6 +210,7 @@ int execute_cmd(char* cmd){
 		{"wf ", 3, shell_wf},
 		{"lf ", 3, shell_lf},
 		{"color ", 6, shell_color},
+		{"beep", 4, shell_beep},
 		{"help", 4, shell_help},
 	};
 	unsigned int cmdlen = strlen(cmd);

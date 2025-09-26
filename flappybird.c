@@ -27,6 +27,7 @@ int _start(void){
 		printf("failed to create welcome text\n");
 		return -1;
 	}
+	sys_beep(10, 100000);
 	sys_render_objects();
 	while (1){
 		sys_sleep(5);

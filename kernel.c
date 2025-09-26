@@ -168,7 +168,6 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
-	play_sound(10000);
 	load_elf(bootdrive, "programs/shell.elf");
 	set_multithreading(0);
 	while (1){};
