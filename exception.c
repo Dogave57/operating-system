@@ -3,6 +3,7 @@
 #include "panic.h"
 #include "stdlib.h"
 #include "vga.h"
+#include "speaker.h"
 #include "interrupt.h"
 #include "kernel.h"
 #include "exception.h"
@@ -33,8 +34,8 @@ void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t 
 		[EXCEPT_SECURITY]="security fail",
 	};
 	__asm__ volatile("cli");
+	vga_set_bg(VGA_COLOR_BLUE);
 	clear();
-	vga_set_color(VGA_COLOR_BRIGHT_WHITE, VGA_COLOR_BLUE);
 	const char* exception_name = exception_map[exception];
 	if (!exception_name)
 		exception_name = "unknown";
@@ -42,9 +43,10 @@ void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t 
 	printf("eip: %p     cs: %p     flags: %p\n", eip, cs, flags);
 	printf("eax: %p     ebx: %p     ecx: %p\n", eax, ebx, ecx);
 	printf("edx: %p     ebp: %p     esp: %p\n", edx, ebp, esp);
-	for (unsigned int i = 0;i<64;i++){
+	for (unsigned int i = 0;i<16;i++){
 		printf("0x%X, ", *(unsigned char*)(eip+i));
 	}
+	play_sound(1000);
 	while (1){
 		keyboard_interrupt();
 	};

@@ -1,6 +1,125 @@
 #include "stdlib.h"
+#include "panic.h"
 #include "libsys.h"
 #include "vga.h"
+#define BASE_GRAVITY 1
+#define NPIPES 1
+static int gravity = BASE_GRAVITY;
+static struct pipe* ppipelist = (struct pipe*)0x0;
+static struct pipe* lastpipe = (struct pipe*)0x0;
+struct pipe{
+	struct object_rect* top;
+	struct object_rect* bottom;
+	struct pipe* flink;
+	struct pipe* blink;	
+};
+int reset_pipe(struct pipe* ppipe);
+int init_pipes(unsigned int pipecnt);
+int deinit_pipes(void);
+int move_pipes(void);
+int reset_pipes(void);
+int reset_pipe(struct pipe* ppipe){
+	if (!ppipe)
+		return -1;
+	struct vector2 pos = {0};
+	struct vector2 size = {0};
+	pos.x = 640-30;
+	pos.y = 0;
+	size.x = 30;
+	size.y = sys_random(30, 70);
+	ppipe->top->position = pos;
+	ppipe->top->size = size;
+	pos.x = 640-30;
+	pos.y = size.y+70+sys_random(10, 20);
+	size.x = 30;
+	size.y = 480-pos.y;
+	ppipe->bottom->position = pos;
+	ppipe->bottom->size = size;
+	return 0;
+}
+int init_pipes(unsigned int pipecnt){
+	if (!pipecnt)
+		return -1;
+	for (unsigned int i = 0;i<pipecnt;i++){
+		struct pipe* newpipe = (struct pipe*)sys_kmalloc(sizeof(struct pipe));
+		if (!newpipe)
+			return -1;
+		struct vector2 pos = {0};
+		struct vector2 size = {0};
+		newpipe->top = sys_add_rect(pos, size, FRAME_FG);
+		if (!newpipe->top){
+			printf("failed to create new pipe object\n");
+			sys_kfree((void*)newpipe);
+			deinit_pipes();
+			return -1;
+		}
+		newpipe->bottom = sys_add_rect(pos, size, FRAME_FG);
+		if (!newpipe->bottom){
+			printf("failed to create new pipe object\n");
+			sys_kfree((void*)newpipe);
+			deinit_pipes();
+			return -1;
+		}
+		newpipe->top->color = VGA_COLOR_GREEN;
+		newpipe->bottom->color = VGA_COLOR_GREEN;
+		reset_pipe(newpipe);
+		if (!ppipelist){
+			ppipelist = newpipe;
+			lastpipe = newpipe;
+			continue;
+		}
+		if (!lastpipe){
+			lastpipe = newpipe;
+			continue;
+		}
+		lastpipe->flink = newpipe;
+		newpipe->blink = lastpipe;
+		lastpipe = newpipe;
+	}	
+	return 0;
+}
+int deinit_pipes(void){
+	if (!ppipelist)
+		return -1;
+	struct pipe* pipe = ppipelist;
+	while (pipe){
+		struct pipe* flink = pipe->flink;
+		if (pipe->top)
+			sys_remove_object((struct object*)pipe->top);
+		if (pipe->bottom)
+			sys_remove_object((struct object*)pipe->bottom);
+		sys_kfree((void*)pipe);
+		pipe = flink;
+	}
+	return 0;
+}
+int move_pipes(void){
+	if (!ppipelist)
+		return -1;
+	struct pipe* pipe = ppipelist;
+	while (pipe){
+		struct pipe* flink = pipe->flink;
+		pipe->bottom->position.x--;
+		pipe->top->position.x--;
+		if (pipe->bottom->position.x>-1){
+			pipe = flink;
+			continue;
+		}
+		reset_pipe(pipe);
+		pipe = flink;
+	}
+	return 0;
+}
+int reset_pipes(void){
+	if (!ppipelist)
+		return -1;
+	struct pipe* pipe = ppipelist;
+	while (pipe){
+		struct pipe* flink = pipe->flink;
+		reset_pipe(pipe);
+		pipe = flink;
+	}
+}
 int _start(void){
 	sys_set_bg(VGA_COLOR_LIGHT_BLUE);
 	sys_clear();
@@ -9,29 +128,28 @@ int _start(void){
 		printf("failed to initialize objects\n");
 		return -1;
 	}
-	struct vector2 pos = {170,100};
-	struct vector2 size = {50,50};
-	struct object_rect* bird = sys_add_rect(pos, size, FRAME_FG);
+	struct vector2 pos = {50,100};
+	struct vector2 size = {30,30};
+	struct object_rect* bird = sys_add_rect(pos, size, FRAME_MIDDLE);
 	if (!bird){
 		printf("failed to create bird\n");
 		return -1;
 	}
 	bird->color = VGA_COLOR_RED;
-	pos.x = 100;
-	pos.y = 20;
-	size.x = 75;
-	size.y = 50;
-	static char* text = "Welcome to flappy bird!\ntest\ntest2";
-	struct object_text* welcome = sys_add_text(pos, text, FRAME_MIDDLE);
-	if (!welcome){
-		printf("failed to create welcome text\n");
+	sys_render_objects();
+	if (init_pipes(NPIPES)!=0){
+		printf("failed to initialize pipes\n");
+		if (sys_deinit_objects()!=0)
+			printf("failed to deinitialize pipes\n");
 		return -1;
 	}
-	sys_beep(10, 100000);
-	sys_render_objects();
+	unsigned int jmpCooldown = 0;
+	unsigned int gravityCooldown = 0;
 	while (1){
-		sys_sleep(5);
+		unsigned int time_ms = sys_get_time_ms();
 		if (sys_keypressed(KEY_ESC)&&sys_keypressed('x')){
+			if (deinit_pipes()!=0)
+				printf("failed to deinitialize pipes\n");
 			if (sys_deinit_objects()!=0)
 				printf("failed to deinitialize objects\n");
 			sys_set_bg(VGA_COLOR_BLACK);
@@ -39,26 +157,39 @@ int _start(void){
 			sys_getchar();
 			return 0;
 		}
-		if (!sys_keypressed('w')&&!sys_keypressed('a')&&!sys_keypressed('s')&&!sys_keypressed('d')&&!sys_keypressed(' ')&&!sys_keypressed('\b'))
-			continue;
-		if (sys_keypressed('w'))
-			bird->position.y--;		
-		if (sys_keypressed('a'))
-			bird->position.x--;
-		if (sys_keypressed('s'))
-			bird->position.y++;
-		if (sys_keypressed('d'))
-			bird->position.x++;
-		if (sys_keypressed(' ')){
-			bird->size.x++;
-			bird->size.y++;
+		if (sys_keypressed(' ')&&gravity==BASE_GRAVITY&&(!jmpCooldown||((time_ms-jmpCooldown)>200))){
+			gravity = BASE_GRAVITY*-6;
+			jmpCooldown = time_ms;
 		}
-		if (sys_keypressed('\b')){
-			bird->size.x--;
-			bird->size.y--;
+		if (gravity<BASE_GRAVITY&&(time_ms-jmpCooldown)>50)
+			gravity++;
+		if (!gravityCooldown||(time_ms-gravityCooldown)>5){
+			bird->position.y+=gravity;
+			gravityCooldown = time_ms;
+			move_pipes();
 		}
+		if (bird->position.y<0||bird->position.y>200){
+			bird->position.x = pos.x;
+			bird->position.y = pos.y;
+			gravity = BASE_GRAVITY;
+			printf("You lost!\n");
+			sys_beep(1000,1000);
+			sys_getchar();
+			printf("Press any key to continue...\n");
+			while (!sys_getchar()){};
+			sys_getchar();
+			reset_pipes();
+			sys_clear();
+		}
+		time_ms = sys_get_time_ms();
 		sys_render_objects();
+		unsigned int elapsed = sys_get_time_ms()-time_ms;
+		if (!elapsed)
+			elapsed = 1;
+		unsigned int fps = 1000/elapsed;
 	}
+	if (deinit_pipes()!=0)
+		printf("failed to deinitialize pipes\n");
 	printf("deinitializing objects\n");
 	if (sys_deinit_objects()!=0)
 		printf("failed to deinitialize objects\n");

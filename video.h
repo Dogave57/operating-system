@@ -1,6 +1,7 @@
 #ifndef _VIDEO
 #define _VIDEO
 #include "vga.h"
+#define VGA_TILE_SIZE (32*32)
 enum objType{
 	OBJ_INVALID,
 	OBJ_RECT,
@@ -78,7 +79,8 @@ struct object_vertices* vga_add_vertices(struct vector2* vertices,unsigned int v
 int vga_remove_object(struct object* pobject);
 int vga_init(void);
 int vga_write_char(unsigned int offset, unsigned char ch, enum vgaColor fg, enum vgaColor bg);
-int vga_write_pixel(int x, int y, enum vgaColor color);
+int vga_write_coord(unsigned int x, unsigned int y, enum vgaColor color);
+int vga_write_pixel(unsigned int pixel, enum vgaColor color);
 enum vgaColor vga_read_pixel(int x, int y);
 void vga_set_mode(enum videoMode mode);
 void vga_set_color(unsigned char fg, unsigned char bg);

@@ -37,6 +37,7 @@ global sys_add_vertices
 global sys_playsound
 global sys_stopsound
 global sys_beep
+global sys_reboot
 sys_putchar:
 xor edx, edx
 int 90h
@@ -191,5 +192,9 @@ int 90h
 ret
 sys_beep:
 mov edx, 38
+int 90h
+ret
+sys_reboot:
+mov edx, 39
 int 90h
 ret

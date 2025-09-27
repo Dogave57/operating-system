@@ -43,4 +43,5 @@ struct object_vertices* sys_add_vertices(struct vector2* pvertices, unsigned int
 int sys_playsound(unsigned int frequency);
 int sys_stopsound(void);
 int sys_beep(unsigned int frequency, unsigned int duration);
+void sys_reboot(void);
 #endif

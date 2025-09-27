@@ -73,6 +73,7 @@ extern vga_add_vertices
 extern play_sound
 extern stop_sound
 extern beep
+extern reboot
 default_master_isr:
 cli
 pusha
@@ -491,6 +492,8 @@ cmp edx, 37
 je stop_sound
 cmp edx, 38
 je beep
+cmp edx, 39
+je reboot
 syscall_end:
 ret
 ebxmsg db "edx %d", 0

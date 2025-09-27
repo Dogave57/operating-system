@@ -118,6 +118,7 @@ int createfile_incluster(unsigned int cluster, struct epic_file** pfiledata, con
 		pfilelist[i].file_cluster = cluster;
 		pfilelist[i].file_offset = i*sizeof(struct epic_file);
 		*pfiledata = pfilelist+i;
+		printf("created %s in cluster %d\n", filename, cluster);
 		return 0;
 	}
 	return -1;	
@@ -131,7 +132,6 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 	unsigned int current_cluster = pdir->data;	
 	if (pdir->size!=0)
 		file_clusters = 1+((pdir->size-1)/4096);
-	printf("creating file %s in dir %s\n", filename, pdir->filename);
 	for (unsigned int i = 0;i<file_clusters&&pdir->size!=0&&pdir->data!=0;i++){
 		if (current_cluster==EPICFS_EOC)
 			break;
@@ -146,7 +146,6 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 		pdir->parent_offset = pdir->file_offset;
 		return 0;
 	}
-	printf("allocating cluster for file metadata\n");
 	unsigned int new_cluster = allocate_cluster(CLUSTER_FILEDATA);
 	if (!new_cluster)
 		return -1;
@@ -158,7 +157,7 @@ int createfile_indir(struct epic_file* pdir, const char* filename, struct epic_f
 	pdir->parent_cluster = pdir->file_cluster;
 	pdir->parent_offset = pdir->file_offset;
 	pdir->size+=sizeof(struct epic_file);
-	printf("creating file in cluster\n");
+	printf("created %s in new dir cluster %d\n", filename, pdir->file_cluster);
 	return createfile_incluster(new_cluster, pfiledata, filename, type);
 }
 int createfile(const char* filename, struct epic_file** pfiledata, enum fileType type){
@@ -187,7 +186,6 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 		if (filename_cpy[i]!='/')
 			continue;
 		filename_cpy[i] = 0;
-		printf("link: %s\n", filename_cpy+link_start);
 		if (current_dir==(struct epic_file*)0x0){
 			if (findfile_inroot(filename_cpy+link_start, &current_dir)!=0){
 			printf("failed to find %s in root\n",filename);
@@ -230,7 +228,7 @@ int createfile(const char* filename, struct epic_file** pfiledata, enum fileType
 	*pfiledata = pfile_metadata;
 	next_free_file++;
 	hdr->files_inroot++;
-	printf("successfully created %s in root with cluster %d and offset %d\n", filename, current_filecluster, pfile_metadata->file_offset);
+	printf("created %s in root with parent cluster %d\n", filename, pfile_metadata->parent_cluster);
 	return 0;
 }
 int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
@@ -267,10 +265,8 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 		free(srcbuf);
 		return -1;
 	}
-	printf("writing %s to %s\n", src, pepic_file->filename);
 	pepic_file->size = srcsize;
 	unsigned int last_cluster = 0;
-	printf("clusters: %d\n", file_clusters);
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int new_cluster = allocate_cluster(CLUSTER_FILEDATA);
 		if (!new_cluster){
@@ -284,16 +280,11 @@ int writefile(unsigned int cluster, unsigned int clusteroff, const char* src){
 		unsigned int bytes_towrite = 4096;
 		if (i==file_clusters-1&&dt)
 			bytes_towrite = dt;
-		printf("writing %d bytes to cluster %d\n", bytes_towrite, new_cluster);
 		unsigned int clusteroff = new_cluster*4096;
-		printf("new cluster: %d\n", new_cluster);
-		printf("cluster offset: %d\n", clusteroff);
 		memcpy((void*)(data+clusteroff), (const void*)srcchunk, bytes_towrite);
-		printf("finished copying data over\n");
 		pepic_file->last_data_cluster = new_cluster;
 		if (last_cluster!=0){
 			fat[last_cluster] = new_cluster;
-			printf("cluster after %d is %d\n", last_cluster, new_cluster);
 		}
 		last_cluster = new_cluster;
 	}
@@ -332,7 +323,6 @@ int adddir(const char* dirname){
 			struct epic_file* pdirmd = (struct epic_file*)0x0;
 			if (createfile(fullpath+maindir_len+1, &pdirmd, FILE_DIR)!=0)
 				continue;
-			printf("successfully created dir %s\n", fullpath+maindir_len+1);
 			adddir(fullpath);
 			continue;
 		}

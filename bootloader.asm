@@ -50,7 +50,7 @@ mov byte [0x9000+23], 0x0
 mov word [0x9000+24], 23
 mov word [0x9000+26], 0x9000
 mov word [0x9000+28], 0x0
-lgdt [0x9000+24]
+;lgdt [0x9000+24]
 xor eax, eax
 cpuid
 mov dword [BLARGS+4], ebx
@@ -81,12 +81,16 @@ mov dword [BLARGS+72], 0
 xor ax, ax
 mov es, ax
 mov di, 0x8004
+clc
+cld
+xor ebx, ebx
 memorymaploop:
 mov eax, 0xE820
-mov edx, 0x534D4150
-mov ecx, 24
+mov edx, 0x0534D4150
+mov ecx, 20
 int 0x15
 jc bootfail_handler
+jc memorymaploopend
 cmp eax, 0x534D4150
 jne bootfail_handler
 add dword [BLARGS+72], 1
@@ -95,10 +99,10 @@ je memorymaploopend
 add di, 24
 jmp memorymaploop
 memorymaploopend:
-mov es, ax
 xor ah, ah
 mov al, 13h
-int 0x10
+int 10h
+lgdt [0x9000+24]
 mov eax, cr0
 or eax, 1
 mov cr0, eax
@@ -123,10 +127,6 @@ mov si, bootfail
 call print
 hlt
 ret
-hlt
-ret
-hlt
-ret
 print:
 mov ah, 0x0E
 xor al, al
@@ -143,9 +143,8 @@ int 0x10
 mov al, 10
 int 0x10
 ret
-bootmsg db "booting...", 0
-readerrmsg db "failed to read kernel", 0
+bootmsg db "booting", 0
+readerrmsg db "kread fail", 0
 bootfail db "failed to boot", 0
 times 510-($-$$) db 0
 dw 0xAA55
-

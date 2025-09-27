@@ -225,7 +225,6 @@ int epic_findfile_incluster(unsigned int drive, unsigned int cluster, char* file
 		return -1;
 	struct epic_clusterhdr* clusterhdr = (struct epic_clusterhdr*)(clusterdata);
 	if (clusterhdr->type==CLUSTER_INVALID){
-		printf("invalid cluster when looking for %s in cluster %d\n", filename, cluster);
 		return -1;
 	}
 	struct epic_file* pfilelist = (struct epic_file*)(clusterhdr+1);
@@ -309,7 +308,6 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 		return -1;
 	struct epic_file* pfilemd = (struct epic_file*)(md_clusterdata+sizeof(struct epic_clusterhdr)+dirmd_offset);
 	if (pfilemd->type!=FILE_DIR){
-		printf("invalid dir to create file in");
 		return -1;
 	}
 	unsigned int file_clusters = 0;
@@ -354,7 +352,6 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 	}
 	unsigned int new_cluster = 0;
 	if (epic_alloc_cluster(drive, &new_cluster)!=0){
-		printf("failed to allocate cluster");
 		return -1;
 	}
 	pclusterhdr->type = CLUSTER_FILEDATA;
@@ -378,11 +375,9 @@ int epic_createfile_indir(unsigned int drive, unsigned int dirmd_cluster, unsign
 	pfilemd->last_data_cluster = new_cluster;
 	pfilemd->size+=sizeof(struct epic_file);
 	if (epic_write_clusterdata(drive, new_cluster, clusterdata)!=0){
-		printf("failed to write new pool data\n");	
 		return -1;
 	}	
 	if (epic_write_clusterdata(drive, dirmd_cluster, md_clusterdata)!=0){
-		printf("failed to write new file metadata\n");
 		return -1;
 	}
 	return 0;
@@ -401,6 +396,8 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 	struct epic_file* pfilemd = (struct epic_file*)(filedata_blob+file_offset);
 	if (!pfilemd->inuse||pfilemd->type==FILE_INVALID)
 		return 0;
+	printf("parent cluster: %d\n", pfilemd->parent_cluster);
+	printf("cluster: %d\noffset: %d\n", pfilemd->file_cluster, pfilemd->file_offset);
 	if (!pfilemd->parent_cluster){
 		fsinfo.files_inroot--;
 		if (epic_set_fsinfo(drive, fsinfo)!=0)
@@ -419,7 +416,7 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 	printf("cluster %d\n", file_cluster);
 	printf("offset: %d\n", file_offset);
 	printf("%s parent cluster: %d\n", pfilemd->filename, pfilemd->parent_cluster);
-	pfilemd->inuse = 1;
+	pfilemd->inuse = 0;
 	pfilemd->size = 0;
 	if (epic_write_clusterdata(drive, file_cluster, filemd_clusterdata)!=0)
 		return -1;
