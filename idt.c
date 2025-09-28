@@ -66,3 +66,14 @@ int idt_init(void){
 	__asm__ volatile ("sti");	
 	return 0;
 }
+int idt_get_free_vec(unsigned int* pvec){
+	if (!pvec)
+		return -1;
+	for (unsigned int i = 0;i<IDT_MAX_ENTRIES;i++){
+		if (idttable[i].isr_low!=0x0)
+			continue;
+		*pvec = i;
+		return 0;
+	}
+	return -1;
+}

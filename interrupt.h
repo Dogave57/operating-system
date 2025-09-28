@@ -50,4 +50,5 @@ void isr30(void);
 void syscall_isr(void);
 int idt_set_descriptor(uint8_t vector, uint32_t isr, uint8_t flags);
 int idt_init(void);
+int idt_get_free_vec(unsigned int* pvec);
 #endif
