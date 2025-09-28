@@ -115,39 +115,58 @@ int epic_set_fsinfo(unsigned int drive, struct epic_fshdr fsinfo){
 	return write_sectors(drive, 128, 8, (uint16_t*)data, 256);
 }
 int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
-	if (!pcluster)
+	if (!pcluster){
+		printf("invalid ptr to cluster\n");
 		return -1;
+	}
 	struct epic_fshdr fsinfo = {0};
-	if (epic_get_fsinfo(drive, &fsinfo)!=0)
+	if (epic_get_fsinfo(drive, &fsinfo)!=0){
+		printf("failed to get fs info\n");
 		return -1;
+	}
 	unsigned int avalible_entries = fsinfo.freelist_size;
 	unsigned int last_sector = 0;
 	unsigned char entry_data[512] = {0};
+	unsigned int clusterdata[128] = {0};
+	unsigned int cluster_sector = 0;
+	unsigned int cluster_index = 0;
 	unsigned int entry_sector = 0;
 	unsigned int entry_index = 0;
 	for (unsigned int i = 1;i<avalible_entries;i++){
-		entry_sector = fsinfo.freelist_off+(i/512);
-		entry_index = i%128;
-		if (entry_sector!=last_sector||!last_sector){
-		if (read_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0)
+		entry_index = i%512;
+		entry_sector = fsinfo.freelist_off;
+		if (last_sector!=entry_sector){
+		if (read_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0){
+			printf("failed to read sector %d\n", entry_sector);
 			return -1;
+		}
 		}
 		if (entry_data[entry_index]!=0x0){
-			last_sector = entry_sector;
 			continue;
-		}
+		}	
 		entry_data[entry_index] = 0x1;
-		if (write_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0)
+		printf("index %d|sector %d\n", entry_index, entry_sector);
+		if (write_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0){
+			printf("failed to write data\n");
 			return -1;
-		if (epic_writecluster(drive, i, i+1)!=0)
-			return -1;
-		*pcluster = i;
-		if (i>fsinfo.last_cluster){
-			fsinfo.last_cluster = i;
-			return epic_set_fsinfo(drive, fsinfo);
 		}
+		cluster_sector = FS_RESERVED_SECTORS+8+((i*4)/512);
+		if (read_sectors(drive, cluster_sector, 1, (uint16_t*)clusterdata, 256)!=0){
+			printf("failed to read cluster data\n");
+			return -1;
+		}
+		cluster_index = i%128;
+		clusterdata[cluster_index] = 0x1;
+		if (write_sectors(drive, cluster_sector, 1, (uint16_t*)clusterdata, 256)!=0){
+			printf("failed to write data\n");
+			return -1;
+		}
+		last_sector = entry_sector;
+		*pcluster = i;
+		printf("successfully allocated cluster\n");
 		return 0;
-	}
+	}	
+	printf("failed to find free cluster\n");
 	return -1;
 }
 int epic_freecluster(unsigned int drive, unsigned int cluster){
@@ -807,8 +826,10 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 	current_cluster = pfilemd->data;
 	for (unsigned int i = 0;i<clusters_toalloc;i++){
 		unsigned int new_cluster = 0;
-		if (epic_alloc_cluster(pfile->drive, &new_cluster)!=0)
+		if (epic_alloc_cluster(pfile->drive, &new_cluster)!=0){
+			printf("failed to allocate new cluster\n");
 			return -1;
+		}
 		if (pfilemd->last_data_cluster){
 		if (epic_writecluster(pfile->drive, pfilemd->last_data_cluster, new_cluster)!=0)
 			return -1;
@@ -816,6 +837,7 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (!pfilemd->data)
 			pfilemd->data = new_cluster;
 		pfilemd->last_data_cluster = new_cluster;
+		printf("allocated cluster %d\n", new_cluster);
 	}
 	current_cluster = pfilemd->data;
 	for (unsigned int i = 0;i<clusters_needed;i++){
@@ -828,6 +850,7 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (i==clusters_needed-1&&dt){
 			towrite = dt;
 		}
+		printf("writing %d bytes to cluster %d\n", towrite, current_cluster);
 		memcpy((void*)pdata, (const void*)(buffer+(i*4096)), towrite);
 		if (epic_write_clusterdata(pfile->drive, current_cluster, pdata)!=0)
 			return -1;
@@ -869,14 +892,19 @@ int getfileinfo(struct file* pfile, struct fileinfo* pinfo){
 	return 0;
 }
 int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries){
-	if (!pplist||!plist_entries)
+	if (!pplist||!plist_entries){
+		printf("invalid args\n");
 		return -1;
+	}
 	struct epic_fshdr fsinfo = {0};
-	if (epic_get_fsinfo(drive, &fsinfo)!=0)
+	if (epic_get_fsinfo(drive, &fsinfo)!=0){
+		printf("failed to get fs info\n");
 		return -1;
+	}
 	struct epic_file filemd = {0};
 	if (pdir){
 	if (epic_getfileinfo(drive, pdir->file_cluster, pdir->file_offset, &filemd)!=0)
+		printf("failed to get dir file info\n");
 		return -1;
 	}
 	unsigned int filesize = filemd.size;
@@ -891,18 +919,24 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 		current_cluster = 1;
 	unsigned int file_entries = filesize/sizeof(struct epic_file);
 	struct fileinfo* plist = (struct fileinfo*)kmalloc(sizeof(struct fileinfo)*file_entries);
-	if (!plist)
+	if (!plist){
+		printf("failed to allocate memory for file list\n");
 		return -1;
+	}
+	printf("successfully allocated file list\n");
+	printf("entries: %d\n", file_entries);
 	*pplist = plist;
 	*plist_entries = file_entries;
 	unsigned int file_entry = 0;
 	for (unsigned int i = 0;i<file_clusters;i++){
 		unsigned int next_cluster = 0;
-		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0)
+		if (epic_readcluster(drive, current_cluster, &next_cluster)!=0){
 			return -1;
+		}
 		unsigned char clusterdata[4096] = {0};
-		if (epic_read_clusterdata(drive, current_cluster, clusterdata)!=0)
+		if (epic_read_clusterdata(drive, current_cluster, clusterdata)!=0){
 			return -1;
+		}
 		unsigned int cluster_entries = (sizeof(clusterdata)-sizeof(struct epic_clusterhdr))/sizeof(struct epic_file);
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)clusterdata;
 		if (pclusterhdr->type!=CLUSTER_FILE&&!pdir){
@@ -915,12 +949,13 @@ int getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist,
 			if (!pfile->inuse){
 			continue;
 			}
+			printf("file: %s\n", pfile->filename);
 			struct fileinfo* pentry = plist+file_entry;
 			strcpy(pentry->filename, pfile->filename);
 			pentry->filesize = pfile->size;
 			pentry->drive = pdir->drive;
 			file_entry++;
-			if (file_entry>file_entries){
+			if (file_entry>=file_entries){
 			return 0;
 			}
 		}

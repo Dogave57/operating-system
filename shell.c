@@ -30,10 +30,16 @@ void shell_echo(char* cmd, unsigned int cmdlen){
 void shell_run(char* cmd, unsigned int cmdlen){
 	if (cmdlen<4||!cmd)
 		return;
+	if (cmdlen>200)
+		return;
 	unsigned int bootdrive = sys_getbootdrive();
-	__asm__ volatile("pusha");
-	sys_loadelf(bootdrive, cmd+4);
-	__asm__ volatile("popa");
+	if (sys_loadelf(bootdrive, cmd+4)==0)
+		return;
+	char inprograms[256] = {0};
+	strcpy(inprograms, "programs/");
+	strcpy(inprograms+9, cmd+4);
+	if (sys_loadelf(bootdrive, inprograms)==0)
+		return;
 	return;
 }
 void shell_clear(char* cmd, unsigned int cmdlen){
@@ -167,7 +173,7 @@ void shell_lf(char* cmd, unsigned int cmdlen){
 	}	
 	struct fileinfo* pfilelist = (struct fileinfo*)0x0;
 	unsigned int pfile_entries = 0;
-	if (sys_getfilelist(bootdrive, pdir, &pfilelist, &pfile_entries)!=0||!pfilelist){
+	if (sys_getfilelist(bootdrive, pdir, &pfilelist, &pfile_entries)!=0){
 		printf("failed to get file list\n");
 		sys_closefile(pdir);
 		return;

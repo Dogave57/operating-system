@@ -25,12 +25,14 @@ i686-elf-gcc -c -O0 speaker.c $CFLAGS -o speaker.o
 i686-elf-gcc -c -O0 shell.c $CFLAGS -o shell.o
 i686-elf-gcc -c -O0 flappybird.c $CFLAGS -o flappybird.o
 i686-elf-gcc -c -O0 musicedit.c $CFLAGS -o musicedit.o
+i686-elf-gcc -c -O0 textedit.c $CFLAGS -o textedit.o
 echo linking kernel
 i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o loader.o libsys.o speaker.o context.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 i686-elf-ld -pie -nostdlib shell.o libsys.o stdlib.o -o shell.elf
 i686-elf-ld -pie -nostdlib flappybird.o libsys.o stdlib.o -o flappybird.elf
 i686-elf-ld -pie -nostdlib musicedit.o libsys.o stdlib.o -o musicedit.elf
+i686-elf-ld -pie -nostdlib textedit.o libsys.o stdlib.o -o textedit.elf
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
@@ -39,6 +41,7 @@ sudo gcc -O0 fsgen/main.c -o fsgen/main
 cp shell.elf fsgen/files/programs/shell.elf
 cp flappybird.elf fsgen/files/programs/flappybird.elf
 cp musicedit.elf fsgen/files/programs/musicedit.elf
+cp textedit.elf fsgen/files/programs/textedit.elf
 echo generating filesystem
-sudo ./'fsgen/main' fsgen/files drive.img 8000000
+sudo ./'fsgen/main' fsgen/files drive.img 1000000
 echo done generating filesystem

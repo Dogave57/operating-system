@@ -36,6 +36,7 @@ unsigned int allocate_cluster(enum clusterType type){
 			continue;
 		fat[i]=i+1;
 		freelist[i] = 0x1;
+		printf("cluster %d entry index %d\n", i, i);
 		unsigned char* pclusterdata = (unsigned char*)data+(i*4096);
 		struct epic_clusterhdr* pclusterhdr = (struct epic_clusterhdr*)pclusterdata;
 		pclusterhdr->type = type;
@@ -369,12 +370,13 @@ int main(int argc, char** argv){
 	hdr->bytes_per_cluster = 4096;
 	hdr->fat_size = (drivesize/4096)*4;
 	hdr->fat_size+=512-(hdr->fat_size%512);
-	hdr->freelist_off = 129+(hdr->fat_size/512);
+	hdr->freelist_off = FS_RESERVED_SECTORS+8+(hdr->fat_size/512);
 	hdr->freelist_size = drivesize/4096;
 	hdr->freelist_size+=512-(hdr->freelist_size%512);
-	hdr->data_off = FS_RESERVED_SECTORS+1+(hdr->fat_size/512)+(hdr->freelist_size/512);
-	data = (unsigned char*)(fsbuf+512+hdr->fat_size+hdr->freelist_size);
-	freelist = (unsigned char*)(fsbuf+512+hdr->fat_size);
+	hdr->data_off = FS_RESERVED_SECTORS+8+(hdr->fat_size/512)+(hdr->freelist_size/512);
+	data = (unsigned char*)(fsbuf+4096+hdr->fat_size+hdr->freelist_size);
+	freelist = (unsigned char*)(fsbuf+4096+hdr->fat_size);
+	printf("%d\n", FS_RESERVED_SECTORS+(4096+hdr->fat_size)/512);
 	fat_entries = (hdr->freelist_size);
 	memset((void*)(fat), 0, hdr->fat_size);
 	memset((void*)(freelist), 0, hdr->freelist_size);

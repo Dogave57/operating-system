@@ -168,8 +168,6 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
-	set_multithreading(1);
-	while (1){};
 	char buf[256] = {0};
 //	while (1){
 //		scan(buf, sizeof(buf)-1, 0);
