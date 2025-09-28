@@ -120,7 +120,7 @@ int reset_pipes(void){
 		pipe = flink;
 	}
 }
-int _start(void){
+int _start(char** argp, unsigned int argc){
 	sys_set_bg(VGA_COLOR_LIGHT_BLUE);
 	sys_clear();
 	printf("Destroy this text\n");

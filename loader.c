@@ -6,13 +6,60 @@
 #include "reb.h"
 #include "timer.h"
 #include "loader.h"
-int load_elf(unsigned int drive, char* filename){
+int loader_genargs(char* arg, char*** pppargs, unsigned int* pargc){
+	if (!arg||!pppargs||!pargc)
+		return -1;
+	unsigned int argc = 0;
+	unsigned int arglen = 0;
+	for (unsigned int i = 0;;i++){
+		if (arg[i]!=' '&&arg[i]!=0)
+			continue;
+		argc++;
+		arglen++;
+		if (!arg[i])
+			break;
+	}
+	if (!argc)
+		return -1;
+	unsigned int pargsize = (sizeof(char*)*argc)+arglen;
+	char** ppargs = (char**)kmalloc(pargsize);
+	if (!ppargs)
+		return -1;
+	char* parg = ((char*)ppargs+(sizeof(char*)*argc));
+	unsigned int argindex = 0;
+	unsigned int argstart = 0;
+	for (unsigned int i = 0;;i++){
+		parg[i] = arg[i];
+		if (arg[i]!=' '&&arg[i])
+			continue;
+		parg[i] = 0;
+		ppargs[argindex] = parg+argstart;
+		argstart = i+1;
+		argindex++;
+		if (!arg[i])
+			break;
+	}
+	*pppargs = ppargs;
+	*pargc = argc;
+	return 0;
+}
+int load_elf(unsigned int drive, char* filename, char* arg){
 	if (!filename)
 		return -1;
 	unsigned int before_ms = time_ms;
+	int spaceindex = -1;
+	for (unsigned int i = 0;filename[i];i++){
+		if (filename[i]!=' ')
+			continue;
+		spaceindex = i;
+		filename[i] = 0;
+		break;
+	}
 	struct file* pfile = openfile(drive, filename);
 	if (!pfile)
 		return -1;
+	if (spaceindex!=-1)
+		filename[spaceindex] = ' ';
 	unsigned int filesize = getfilesize(pfile);
 	if (!filesize){
 		closefile(pfile);
@@ -81,14 +128,17 @@ int load_elf(unsigned int drive, char* filename){
 	kfree((void*)filebuf);
 	programEntry entry = 0;
 	entry = (programEntry)(pimage+ehdr->entry);
-	printf("loaded program in %dms\n", time_ms-before_ms);
 	printf("program loaded at %p\n", (void*)pimage);
-	entry();
+	unsigned int argc = 0;
+	char** argp = (char**)0x0;
+	loader_genargs(arg, &argp, &argc);
+	entry(argp, argc);
 	printf("program finished execution\n");
 	kfree((void*)pimage);
+	kfree((void*)argp);
 	return 0;
 }
-int load_bin(unsigned int drive, char* filename){
+int load_bin(unsigned int drive, char* filename, char* arg){
 	if (!filename)
 		return -1;
 	struct file* pfile = openfile(drive, filename);
@@ -110,7 +160,9 @@ int load_bin(unsigned int drive, char* filename){
 	}
 	closefile(pfile);
 	programEntry entry = (programEntry)pimage;
-	entry();
+	unsigned int argc = 0;
+	char** argp = (char**)0x0;
+	entry(argp, argc);
 	kfree((void*)pimage);
 	return 0;
 }

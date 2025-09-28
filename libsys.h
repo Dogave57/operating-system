@@ -19,7 +19,7 @@ int sys_getbootdrive(void);
 void sys_clear(void);
 char sys_getchar(void);
 void sys_set_console_color(enum vgaColor fg, enum vgaColor bg);
-int sys_loadelf(unsigned int drive, char* filename);
+int sys_loadelf(unsigned int drive, char* filename, char* arg);
 int sys_getfileinfo(struct file* pfile, struct fileinfo* pinfo);
 int sys_createfile(unsigned int drive, char* filename, enum fileType type);
 int sys_getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);

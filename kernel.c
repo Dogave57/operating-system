@@ -172,7 +172,7 @@ void kentry(void){
 //	while (1){
 //		scan(buf, sizeof(buf)-1, 0);
 //	};
-	load_elf(bootdrive, "programs/shell.elf");
+	load_elf(bootdrive, "programs/shell.elf", "skibap toilet");
 	set_multithreading(0);
 	while (1){};
 	return;	

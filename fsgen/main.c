@@ -376,7 +376,6 @@ int main(int argc, char** argv){
 	hdr->data_off = FS_RESERVED_SECTORS+8+(hdr->fat_size/512)+(hdr->freelist_size/512);
 	data = (unsigned char*)(fsbuf+4096+hdr->fat_size+hdr->freelist_size);
 	freelist = (unsigned char*)(fsbuf+4096+hdr->fat_size);
-	printf("%d\n", FS_RESERVED_SECTORS+(4096+hdr->fat_size)/512);
 	fat_entries = (hdr->freelist_size);
 	memset((void*)(fat), 0, hdr->fat_size);
 	memset((void*)(freelist), 0, hdr->freelist_size);

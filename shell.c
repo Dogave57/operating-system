@@ -33,14 +33,9 @@ void shell_run(char* cmd, unsigned int cmdlen){
 	if (cmdlen>200)
 		return;
 	unsigned int bootdrive = sys_getbootdrive();
-	if (sys_loadelf(bootdrive, cmd+4)==0)
+	printf("%s\n", cmd+4);
+	if (sys_loadelf(bootdrive, cmd+4, cmd+4)==0)
 		return;
-	char inprograms[256] = {0};
-	strcpy(inprograms, "programs/");
-	strcpy(inprograms+9, cmd+4);
-	if (sys_loadelf(bootdrive, inprograms)==0)
-		return;
-	return;
 }
 void shell_clear(char* cmd, unsigned int cmdlen){
 	sys_clear();
@@ -240,7 +235,7 @@ int execute_cmd(char* cmd){
 	}
 	return -1;
 }
-int _start(void){
+int _start(char** argp, unsigned int argc){
 	sys_clear();
 	unsigned int bootdrive = sys_getbootdrive();
 	sys_set_console_color(VGA_COLOR_BRIGHT_WHITE, VGA_COLOR_BLACK);
