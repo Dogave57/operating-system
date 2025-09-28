@@ -74,6 +74,80 @@ extern play_sound
 extern stop_sound
 extern beep
 extern reboot
+extern time_ms
+extern scheduler_info
+extern first_thread
+switchmsg db "ctx switch", 10, 0
+tpmsg db "new thread: %p", 10, 0
+eipmsg db "eip: %p", 10, 0
+schedulerfail db "scheduler failure!", 10, 0
+timer_interrupt:
+cli
+pusha
+add dword [time_ms], 1
+mov dword eax, [scheduler_info+16]
+cmp eax, 0
+je end
+mov dword eax, [time_ms]
+mov dword edx, 0
+mov dword ecx, 1
+div ecx
+cmp edx, 0
+jne end
+mov eax, [scheduler_info+4]
+cmp eax, 0
+jne switch_nt
+mov eax, [first_thread]
+jmp switch
+switch_nt:
+mov dword ebx, [esp+32]
+mov dword [eax+20], ebx
+mov dword ebx, esp
+add dword ebx, 32
+add dword ebx, 12
+mov dword [eax+24], ebx
+mov dword [eax+28], ebp
+mov dword [eax+36], ebx
+mov dword [eax+40], ecx
+mov dword [eax+44], edx
+mov dword [eax+48], edi
+mov dword [eax+52], esi
+mov edx, eax
+mov dword eax, [esp]
+mov dword [edx+32], eax
+mov dword eax, edx
+mov dword eax, [eax+4]
+jmp switch
+switch:
+cmp eax, 0
+je fail
+mov dword [scheduler_info+4], eax
+mov ebx, [eax+20]
+cmp ebx, 0
+je fail
+mov esp, [eax+24]
+sub esp, 4
+mov dword [esp], ebx
+mov dx, 20h
+mov al, 20h
+out dx, al
+sti
+ret
+jmp end
+fail:
+cli
+sub esp, 4
+mov dword [esp], schedulerfail
+call panic
+add esp, 4
+hlt
+end:
+mov dx, 20h
+mov al, 20h
+out dx, al
+popa
+sti
+iret
 default_master_isr:
 cli
 pusha
@@ -94,14 +168,7 @@ sti
 iret
 timer_isr:
 cli
-pusha
-call timer_interrupt
-mov al, 0x20
-mov dx, 0x20
-out dx, al
-popa
-sti
-iret
+jmp timer_interrupt
 keyboard_isr:
 cli
 pusha

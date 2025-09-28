@@ -29,26 +29,24 @@ struct threadstate_x86{
 	uint8_t cl;
 	uint8_t dh;
 	uint8_t dl;
-};
+}__attribute__((packed));
 struct thread_t{
+	struct thread_t* blink;
+	struct thread_t* flink;
 	uint32_t id;
 	uint32_t stack_start;
 	uint32_t stacksize;
 	struct threadstate_x86 state;
-	struct thread_t* blink;
-	struct thread_t* flink;
 	enum threadStatus status;
 	void* arg;
-};
+}__attribute__((packed));
 struct scheduler_task_info_t{
 	struct thread_t* last_thread;
 	struct thread_t* current_thread;
 	uint32_t thread_max_ms;
 	uint32_t thread_start;
-	uint32_t esp;
-	uint32_t ebp;
 	uint32_t multithread_enabled;
-};
+}__attribute__((packed));
 typedef void(*threadfunc)(void* arg);
 extern struct thread_t* first_thread;
 extern struct scheduler_task_info_t scheduler_info;

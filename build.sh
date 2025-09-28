@@ -3,6 +3,7 @@ LDFLAGS=''
 nasm -f bin bootloader.asm -o bootloader.bin
 nasm -f elf32 isrs.asm -o isrs.o
 nasm -f elf32 libsys.asm -o libsys.o
+nasm -f elf32 context.asm -o context.o
 i686-elf-gcc -c -O0 kernel.c $CFLAGS -T linker.ld -o kernel.o
 i686-elf-gcc -c -O0 commands.c $CFLAGS -o commands.o
 i686-elf-gcc -c -O0 video.c $CFLAGS -o video.o
@@ -23,11 +24,13 @@ i686-elf-gcc -c -O0 loader.c $CFLAGS -o loader.o
 i686-elf-gcc -c -O0 speaker.c $CFLAGS -o speaker.o
 i686-elf-gcc -c -O0 shell.c $CFLAGS -o shell.o
 i686-elf-gcc -c -O0 flappybird.c $CFLAGS -o flappybird.o
+i686-elf-gcc -c -O0 musicedit.c $CFLAGS -o musicedit.o
 echo linking kernel
-i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o loader.o libsys.o speaker.o -o kernel.elf
+i686-elf-ld -T linker.ld kernel.o video.o stdlib.o isrs.o idt.o commands.o cursor.o panic.o memory.o filesystem.o timer.o thread.o exception.o usb.o pci.o smbios.o dev.o loader.o libsys.o speaker.o context.o -o kernel.elf
 i686-elf-objcopy -O binary kernel.elf kernel.bin
 i686-elf-ld -pie -nostdlib shell.o libsys.o stdlib.o -o shell.elf
 i686-elf-ld -pie -nostdlib flappybird.o libsys.o stdlib.o -o flappybird.elf
+i686-elf-ld -pie -nostdlib musicedit.o libsys.o stdlib.o -o musicedit.elf
 truncate -s 65536 kernel.bin
 truncate -s 0 os.img
 cat bootloader.bin kernel.bin > os.img
@@ -35,6 +38,7 @@ sudo cat os.img > drive.img
 sudo gcc -O0 fsgen/main.c -o fsgen/main
 cp shell.elf fsgen/files/programs/shell.elf
 cp flappybird.elf fsgen/files/programs/flappybird.elf
+cp musicedit.elf fsgen/files/programs/musicedit.elf
 echo generating filesystem
 sudo ./'fsgen/main' fsgen/files drive.img 8000000
 echo done generating filesystem

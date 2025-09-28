@@ -53,9 +53,9 @@ void putchar(char ch){
 			break;
 		}
 	}
-	if (vgaIndex/(vga_width/8)>(vga_height/8)){
-		clear();
-		return;
+	if (vgaIndex*64>((vga_width*vga_height))){
+		clear();	
+		vgaIndex = 0;
 	}
 	cursor_setpos(vgaIndex/2);
 	return;

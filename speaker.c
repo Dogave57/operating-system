@@ -2,6 +2,8 @@
 #include "timer.h"
 #include "kernel.h"
 int play_sound(unsigned int frequency){
+	if (!frequency)
+		frequency = 1;
 	unsigned int div = 1193180 / frequency;
 	unsigned char tmp = 0;
 	outb(0x43, 0xB6);

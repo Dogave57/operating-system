@@ -168,32 +168,44 @@ void kentry(void){
 		panic("invalid file system signature\n");
 	}
 	unsigned int last_ms = time_ms;
+	set_multithreading(1);
+	while (1){};
+	char buf[256] = {0};
+//	while (1){
+//		scan(buf, sizeof(buf)-1, 0);
+//	};
 	load_elf(bootdrive, "programs/shell.elf");
 	set_multithreading(0);
 	while (1){};
 	return;	
 }
 void test_thread(void* arg){
-	printf("test thread started\n");
+	unsigned int t = 0;
+	t = 1;
+	printf("test thread %d started\n", t);
 	while (1){
-		sleep(700);
-		print("test thread 1 running in loop...\n");
+		sleep(1000);
+		printf("test thread %d running in loop...\n", t);
 	}
 	return;
 }
 void test_thread2(void* arg){
-	printf("test thread 2 started\n");
+	unsigned int t = 0;
+	t = 2;
+	printf("test thread %d started\n", t);
 	while (1){
-		sleep(700);
-		printf("test thread 2 running in loop\n");
+		sleep(1000);
+		printf("test thread %d running in loop\n", t);
 	}
 	return;
 }
 void test_thread3(void* arg){
-	printf("test thread 3 started\n");
+	unsigned int t = 0;
+	t = 3;
+	printf("test thread %d started\n", t);
 	while (1){
-		sleep(700);
-		printf("test thread 3 running in loop\n");
+		sleep(1000);
+		printf("test thread %d running in loop\n", t);
 	}
 	return;
 }
