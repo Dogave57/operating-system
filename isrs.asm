@@ -77,77 +77,118 @@ extern reboot
 extern time_ms
 extern scheduler_info
 extern first_thread
+extern vga_write_char
+extern vga_draw_rect
+extern vga_write_coord
+extern vga_set_char_position
+extern switch_task
 switchmsg db "ctx switch", 10, 0
 tpmsg db "new thread: %p", 10, 0
 eipmsg db "eip: %p", 10, 0
+tidmsg db "tid: %d", 10, 0
+teipmsg db "thread eip: %p", 10, 0
 schedulerfail db "scheduler failure!", 10, 0
-timer_interrupt:
-cli
-pusha
-add dword [time_ms], 1
-mov dword eax, [scheduler_info+16]
+scheduler_init:
+mov dword [scheduler_info+4], 0
+ret
+switch_task:
+pushad
+mov dword eax, [scheduler_info+4]
 cmp eax, 0
-je end
-mov dword eax, [time_ms]
-mov dword edx, 0
-mov dword ecx, 1
-div ecx
-cmp edx, 0
-jne end
-mov eax, [scheduler_info+4]
-cmp eax, 0
-jne switch_nt
-mov eax, [first_thread]
-jmp switch
-switch_nt:
+je change_task
 mov dword ebx, [esp+32]
-mov dword [eax+20], ebx
-mov dword ebx, esp
-add dword ebx, 32
-add dword ebx, 12
-mov dword [eax+24], ebx
-mov dword [eax+28], ebp
-mov dword [eax+36], ebx
-mov dword [eax+40], ecx
-mov dword [eax+44], edx
-mov dword [eax+48], edi
-mov dword [eax+52], esi
-mov edx, eax
-mov dword eax, [esp]
-mov dword [edx+32], eax
-mov dword eax, edx
+mov dword [eax+12], ebx
+mov dword ebx, [esp]
+mov dword [eax+44], ebx;edi
+mov dword ebx, [esp+4]
+mov dword [eax+40], ebx;esi
+mov dword ebx, [esp+8]
+mov dword [eax+20], ebx;ebp
+mov dword ebx, [esp+12]
+mov dword [eax+16], ebx;esp
+mov dword ebx, [esp+16]
+mov dword [eax+28], ebx;ebx
+mov dword ebx, [esp+20]
+mov dword [eax+36], ebx;edx
+mov dword ebx, [esp+24]
+mov dword [eax+32], ebx;ecx
+mov dword ebx, [esp+28]
+mov dword [eax+24], ebx;eax
+xor eax, eax
+change_task:
+popad
+mov dword ebx, [esp+4]
+cmp ebx, 0
+je random_task
+mov dword eax, ebx
+jmp switch
+random_task:
+mov dword eax, [scheduler_info+4]
+cmp eax, 0
+jne new_task
+first_task:
+mov dword eax, [first_thread]
+jmp switch
+new_task:
 mov dword eax, [eax+4]
 jmp switch
 switch:
 cmp eax, 0
-je fail
-mov dword [scheduler_info+4], eax
-mov ebx, [eax+20]
-cmp ebx, 0
-je fail
-mov esp, [eax+24]
-sub esp, 4
-mov dword [esp], ebx
-mov dx, 20h
-mov al, 20h
-out dx, al
-sti
+jne success
+mov eax, -1
 ret
-jmp end
-fail:
-cli
+success:
+mov dword [scheduler_info+4], eax
 sub esp, 4
-mov dword [esp], schedulerfail
-call panic
-add esp, 4
-hlt
-end:
-mov dx, 20h
+mov dword [esp], eax
+jmp ctx_switch
+xor eax, eax
+ret
+ctx_switch:
 mov al, 20h
+mov dx, 20h
 out dx, al
-popa
+mov dword eax, [esp]
+add esp, 4
+mov dword esp, [eax+16]
+sub esp, 32
+mov dword ebx, [eax+12]
+mov dword [esp], ebx;eip
+mov dword ebx, [eax+20]
+mov dword [esp+4], ebx;ebp
+mov dword ebx, [eax+24]
+mov dword [esp+8], ebx;eax
+mov dword ebx, [eax+28]
+mov dword [esp+12], ebx;ebx
+mov dword ebx, [eax+32]
+mov dword [esp+16], ebx;ecx
+mov dword ebx, [eax+36]
+mov dword [esp+20], ebx;edx
+mov dword ebx, [eax+40]
+mov dword [esp+24], ebx;esi
+mov dword ebx, [eax+44]
+mov dword [esp+28], ebx;edi
+mov dword ebp, [esp+4]
+mov dword eax, [esp+8]
+mov dword ebx, [esp+12]
+mov dword ecx, [esp+16]
+mov dword edx, [esp+20]
 sti
-iret
+add esp, 32
+jmp [esp-32]
+ret
+timer_interrupt:
+cli
+pushad
+mov dword eax, [scheduler_info+4]
+cmp eax, 0
+jne timer_change
+call scheduler_init
+timer_change:
+add dword [time_ms], 1
+end:
+popa
+ret
 default_master_isr:
 cli
 pusha
@@ -168,7 +209,13 @@ sti
 iret
 timer_isr:
 cli
-jmp timer_interrupt
+pushad
+call timer_interrupt
+mov al, 0x20
+mov dx, 0x20
+out dx, al
+popad
+iret
 keyboard_isr:
 cli
 pusha
@@ -181,12 +228,12 @@ sti
 iret
 mouse_isr:
 cli
-pusha
+pushad
 call mouse_interrupt
 mov al, 0x20
 mov dx, 0x20
 out dx, al
-popa
+popad
 sti
 iret
 isr0:
@@ -561,6 +608,16 @@ cmp edx, 38
 je beep
 cmp edx, 39
 je reboot
+cmp edx, 40
+je vga_write_char
+cmp edx, 41
+je vga_draw_rect
+cmp edx, 42
+je vga_write_coord
+cmp edx, 43
+je vga_set_char_position
+cmp edx, 44
+je switch_task
 syscall_end:
 ret
 ebxmsg db "edx %d", 0

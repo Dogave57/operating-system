@@ -36,7 +36,7 @@ uint64_t getInstalledMemory(void){
 }
 int heap_init(void){
 	struct heap_block* firstblock = (struct heap_block*)NULL;
-	heap_data = (struct heap_metadata*)2000000;
+	heap_data = (struct heap_metadata*)3000000;
 	firstblock = (struct heap_block*)(heap_data+1);
 	heap_data->firstblock = (struct heap_block*)(firstblock);
 	heap_data->heap_reserved = getInstalledMemory()-(unsigned int)heap_data;

@@ -38,6 +38,11 @@ global sys_playsound
 global sys_stopsound
 global sys_beep
 global sys_reboot
+global sys_writechar
+global sys_writerect
+global sys_writecoord
+global sys_set_char_position
+global sys_switchtask
 sys_putchar:
 xor edx, edx
 int 90h
@@ -196,5 +201,25 @@ int 90h
 ret
 sys_reboot:
 mov edx, 39
+int 90h
+ret
+sys_writechar:
+mov edx, 40
+int 90h
+ret
+sys_writerect:
+mov edx, 41
+int 90h
+ret
+sys_writecoord:
+mov edx, 42
+int 90h
+ret
+sys_set_char_position:
+mov edx, 43
+int 90h
+ret
+sys_switchtask:
+mov edx, 44
 int 90h
 ret

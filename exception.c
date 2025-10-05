@@ -5,6 +5,7 @@
 #include "vga.h"
 #include "speaker.h"
 #include "interrupt.h"
+#include "timer.h"
 #include "kernel.h"
 #include "exception.h"
 void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t ecx, uint32_t edx, uint32_t ebp, uint32_t esp, uint32_t eip, uint32_t cs, uint32_t flags){
@@ -36,19 +37,19 @@ void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t 
 	__asm__ volatile("cli");
 	vga_set_bg(VGA_COLOR_BLUE);
 	clear();
+	set_multithreading(0);
 	const char* exception_name = exception_map[exception];
 	if (!exception_name)
 		exception_name = "unknown";
 	printf("%s exception triggered!\n", exception_name);
-	printf("eip: %p     cs: %p     flags: %p\n", eip, cs, flags);
-	printf("eax: %p     ebx: %p     ecx: %p\n", eax, ebx, ecx);
-	printf("edx: %p     ebp: %p     esp: %p\n", edx, ebp, esp);
+	set_pit_frequency(9999999);
+	__asm__ volatile("cli");
+	printf("eip: %p  cs: %p  flags: %p\n", eip, cs, flags);
+	printf("eax: %p  ebx: %p  ecx: %p\n", eax, ebx, ecx);
+	printf("edx: %p  ebp: %p  esp: %p\n", edx, ebp, esp);
 	for (unsigned int i = 0;i<16;i++){
 		printf("0x%X, ", *(unsigned char*)(eip+i));
 	}
-	play_sound(1000);
-	while (1){
-		keyboard_interrupt();
-	};
+	while (1){};
 	return;
 }

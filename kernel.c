@@ -26,6 +26,7 @@ size_t cmdlen = 0;
 void test_thread(void* arg);
 void test_thread2(void* arg);
 void test_thread3(void* arg);
+int mouse_init(void);
 void kentry(void){
 	struct bootloader_args* blargs = (struct bootloader_args*)0x2000;
 	unsigned int avalibleMemory = 0;
@@ -44,6 +45,10 @@ void kentry(void){
 		panic("failed to intiailize vga\n");
 		return;
 	}
+	if (mouse_init()!=0){
+		panic("failed to initialize ps/2 mouse\n");
+		return;	
+	}
 	cursor_enable(0x00, 15);	
 	if (pci_init()!=0){
 		printf("failed to initialize pci\n");
@@ -60,18 +65,19 @@ void kentry(void){
 	avalibleMemory = getAvalibleMemory();
 	installedMemory = getInstalledMemory();
 	if (avalibleMemory<2000000){
-		panic("this operating system needs atleast 2mb of memory to run!\n");
-		return;
+		printf("WARNING\n");
+		printf("this operating system needs atleast 2mb of memory to run properly!\n");
+		sleep(5000);
 	}
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
 	printf("drive sectors: %d\n", sectors.low);
-	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, NULL);
+	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, (void*)0x1);
 	if (!thread)
 		panic("failed to created test thread\n");
-	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, NULL);
+	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, (void*)0x2);
 	if (!thread2)
 		panic("failed to created test thread 2\n");
-	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, NULL);
+	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, (void*)0x3);
 	for (unsigned int bus = 0;bus<256;bus++){
 		for (unsigned int dev = 0;dev<32;dev++){
 			for (unsigned int func = 0;func<8;func++){
@@ -172,40 +178,48 @@ void kentry(void){
 //	while (1){
 //		scan(buf, sizeof(buf)-1, 0);
 //	};
+	set_multithreading(1);
+	clear();
+	switch_task(thread);
 	load_elf(bootdrive, "programs/shell.elf", "skibap toilet");
-	set_multithreading(0);
 	while (1){};
 	return;	
 }
 void test_thread(void* arg){
 	unsigned int t = 0;
 	t = 1;
-	printf("test thread %d started\n", t);
+	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
-		sleep(1000);
+		sleep(500);
 		printf("test thread %d running in loop...\n", t);
+		switch_task((struct thread_t*)0x0);
 	}
 	return;
 }
 void test_thread2(void* arg){
 	unsigned int t = 0;
 	t = 2;
-	printf("test thread %d started\n", t);
+	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
 		sleep(1000);
 		printf("test thread %d running in loop\n", t);
+		switch_task((struct thread_t*)0x0);
 	}
 	return;
 }
 void test_thread3(void* arg){
 	unsigned int t = 0;
 	t = 3;
-	printf("test thread %d started\n", t);
+	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
-		sleep(1000);
+		sleep(200);
 		printf("test thread %d running in loop\n", t);
+		switch_task((struct thread_t*)0x0);
 	}
 	return;
+}
+int mouse_init(void){
+	return 0;	
 }
 void keyboard_interrupt(void){
 	if (!(inb(0x64)&1))
@@ -228,11 +242,35 @@ void keyboard_interrupt(void){
 		case 0xB6:
 			shiftPressed = 0;
 		return;
-		case 0x1D:
+		case 0x01:
 			keys_pressed[KEY_ESC] = 1;
 		return;
-		case 0x9D:
+		case 0x81:
 			keys_pressed[KEY_ESC] = 0;
+		return;
+		case 0x48:
+			keys_pressed[KEY_UARROW] = 1;	
+		return;
+		case 0x50:
+			keys_pressed[KEY_DARROW] = 1;
+		return;
+		case 0x4B:
+			keys_pressed[KEY_LARROW] = 1;
+		return;
+		case 0x4D:
+			keys_pressed[KEY_RARROW] = 1;
+		return;
+		case 0xC8:
+			keys_pressed[KEY_UARROW] = 0;
+		return;
+		case 0xD0:
+			keys_pressed[KEY_DARROW] = 0;
+		return;
+		case 0xCB:
+			keys_pressed[KEY_LARROW] = 0;
+		return;
+		case 0xCD:
+			keys_pressed[KEY_RARROW] = 0;
 		return;
 	}
 	char ascii = scantoascii[scancode];
@@ -252,8 +290,8 @@ void keyboard_interrupt(void){
 	return;
 }
 void mouse_interrupt(void){
-	if (!(inb(0x64)&1))
-		return;
+//	if (!(inb(0x64)&1))
+//		return;
 	printf("click\n");
 	return;
 }

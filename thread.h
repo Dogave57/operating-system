@@ -14,31 +14,18 @@ struct threadstate_x86{
 	uint32_t ebx;
 	uint32_t ecx;
 	uint32_t edx;
-	uint32_t edi;
 	uint32_t esi;
-	uint16_t di;
-	uint16_t si;
-	uint16_t ax;
-	uint16_t cx;
-	uint16_t dx;
-	uint8_t ah;
-	uint8_t al;
-	uint8_t bh;
-	uint8_t bl;
-	uint8_t ch;
-	uint8_t cl;
-	uint8_t dh;
-	uint8_t dl;
+	uint32_t edi;
 }__attribute__((packed));
 struct thread_t{
 	struct thread_t* blink;
 	struct thread_t* flink;
+	void* arg;
+	struct threadstate_x86 state;
 	uint32_t id;
 	uint32_t stack_start;
 	uint32_t stacksize;
-	struct threadstate_x86 state;
 	enum threadStatus status;
-	void* arg;
 }__attribute__((packed));
 struct scheduler_task_info_t{
 	struct thread_t* last_thread;
@@ -55,4 +42,5 @@ extern uint32_t threads_freed;
 extern uint32_t threads_cnt;
 struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg);
 int thread_free(struct thread_t* thread);
+int switch_task(struct thread_t* ptask);
 #endif

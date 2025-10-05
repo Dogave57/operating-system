@@ -3,6 +3,7 @@
 #include "filesystem.h"
 #include "input.h"
 #include "video.h"
+#include "thread.h"
 #include "vga.h"
 void sys_putchar(char ch);
 void sys_print(char* msg);
@@ -25,7 +26,7 @@ int sys_createfile(unsigned int drive, char* filename, enum fileType type);
 int sys_getfilelist(unsigned int drive, struct file* pdir, struct fileinfo** pplist, unsigned int* plist_entries);
 int sys_renamefile(struct file* pfile, char* newname);
 unsigned int sys_get_time_ms(void);
-int sys_writepixel(int x, int y, enum vgaColor color);
+int sys_writepixel(unsigned int pixel, enum vgaColor color);
 unsigned int sys_random(unsigned int min, unsigned int max);
 int sys_draw_rect(struct vector2 pos, struct vector2 size, enum vgaColor color);
 void sys_sleep(unsigned int ms);
@@ -44,4 +45,9 @@ int sys_playsound(unsigned int frequency);
 int sys_stopsound(void);
 int sys_beep(unsigned int frequency, unsigned int duration);
 void sys_reboot(void);
+int sys_writechar(unsigned int offset, unsigned char ch, enum vgaColor fg, enum vgaColor bg);
+int sys_writerect(struct vector2 position, struct vector2 size, enum vgaColor color);
+int sys_writecoord(unsigned int x, unsigned int y, enum vgaColor color);
+int sys_set_char_position(unsigned int position);
+int sys_switchtask(struct thread_t* ptask);
 #endif

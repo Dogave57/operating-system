@@ -1,6 +1,7 @@
 #include "stdlib.h"
 #include "filesystem.h"
 #include "video.h"
+#include "math.h"
 #include "libsys.h"
 typedef void(*shellFunc)(char* cmd, unsigned int cmdlen);
 struct shelltab_entry{
@@ -238,7 +239,7 @@ int execute_cmd(char* cmd){
 int _start(char** argp, unsigned int argc){
 	sys_clear();
 	unsigned int bootdrive = sys_getbootdrive();
-	sys_set_console_color(VGA_COLOR_BRIGHT_WHITE, VGA_COLOR_BLACK);
+	sys_set_console_color(67, VGA_COLOR_BLACK);
 	unsigned int time_ms = sys_get_time_ms();
 	printf("Welcome to the shell!\n");
 	printf("took %dms to boot up\n", time_ms);

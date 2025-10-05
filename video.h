@@ -68,6 +68,7 @@ void print(const char* str);
 void putchar(char ch);
 void puthex(unsigned char hex, unsigned char lower);
 void clear();
+int vga_set_char_position(unsigned int position);
 void vga_set_bg(enum vgaColor color);
 int vga_init_objects(void);
 int vga_deinit_frame(struct frame* pframe);

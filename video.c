@@ -77,11 +77,15 @@ void puthex(unsigned char hex, unsigned char lower){
 void clear(void){
 	enum vgaColor colors[] = {VGA_COLOR_LIGHT_RED, VGA_COLOR_LIGHT_GREEN, VGA_COLOR_LIGHT_BLUE};
 	for (unsigned int i = 0;i<vga_width*vga_height;i++){
-		vga_buffer[i] = vga_bg;
+		vga_write_pixel(i, vga_bg);
 	}	
 	vgaIndex = 0;
 	cursor_setpos(0);
 	return;
+}
+int vga_set_char_position(unsigned int position){
+	vgaIndex = position;
+	return 0;
 }
 int vga_write_char(unsigned int offset, unsigned char ch, enum vgaColor fg, enum vgaColor bg){
 	if (!vga_buffer){
@@ -107,18 +111,10 @@ int vga_write_coord(unsigned int x, unsigned int y, enum vgaColor color){
 	return vga_write_pixel((y*vga_width)+x, color);
 }
 int vga_write_pixel(unsigned int pixel, enum vgaColor color){
-	while (!(inb(0x3DA)&8)){};
+	if (vga_backbuffer[pixel]==color)
+		return 0;
+	vga_backbuffer[pixel] = color;
 	vga_buffer[pixel] = color;
-	while (inb(0x3DA)&8){};
-	return 0;
-	unsigned int planesize = (vga_width*vga_height)/8;
-	unsigned int x = pixel%vga_width;
-	unsigned int vga_byte = pixel/8;
-	unsigned int vga_bit = x%8;
-	for (unsigned int i = 0;i<4;i++){
-		unsigned char* plane = vga_buffer+(i*planesize);
-			
-	}
 	return 0;
 }
 enum vgaColor vga_read_pixel(int x, int y){

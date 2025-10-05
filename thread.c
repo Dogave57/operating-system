@@ -36,6 +36,11 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 	newthread->blink = last_thread;
 	if (last_thread)
 		last_thread->flink = newthread;
+	unsigned int* pstack = (unsigned int*)newthread->state.esp;
+	pstack--;
+	*pstack = (unsigned int)arg;
+	pstack--;
+	newthread->state.esp = (uint32_t)pstack;
 	newthread->flink = first_thread;
 	last_thread = newthread;
 	if (!first_thread)
