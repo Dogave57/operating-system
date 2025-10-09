@@ -1,0 +1,46 @@
+global bytecode_emit
+global bytecode_init
+global bytecode_deinit
+extern sys_kmalloc
+extern sys_kfree
+bytecode_emit:
+push ebp
+mov dword ebp, esp
+mov dword eax, [esp+4]
+mov dword ebx, [esp+8]
+xor eax, eax
+leave
+ret
+bytecode_init:
+push ebp
+mov dword ebp, esp
+mov dword ebx, [esp+8]
+sub dword esp, 4
+mov dword [esp], 8
+call sys_kmalloc
+add dword esp, 4
+cmp eax, 0
+je bytecode_init_fail
+mov dword ecx, eax
+push ebx
+call sys_kmalloc
+pop ebx
+cmp eax, 0
+je bytecode_init_fail
+mov dword edx, eax
+mov dword [ecx], edx
+mov dword [ecx+4], ebx
+bytecode_init_end:
+leave
+mov dword eax, ecx
+ret
+bytecode_init_fail:
+leave
+xor eax, eax
+ret
+bytecode_deinit:
+push ebp
+mov dword ebp, esp
+leave
+xor eax, eax
+ret

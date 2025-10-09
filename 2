@@ -92,7 +92,6 @@ scheduler_init:
 mov dword [scheduler_info+4], 0
 ret
 switch_task:
-ret
 sub esp, 28
 mov dword [esp], edi
 mov dword [esp+4], esi
@@ -119,7 +118,7 @@ mov dword [eax+24], ebx;eax
 mov dword ebx, [esp+24]
 mov dword [eax+20], ebp;ebp
 mov dword ebx, esp
-add ebx, 28+4
+add ebx, 28+8
 mov dword [eax+16], ebx;esp
 mov dword ebx, [esp+28]
 mov dword [eax+12], ebx;eip
@@ -148,8 +147,6 @@ mov dword [scheduler_info+4], eax
 sub esp, 4
 mov dword [esp], eax
 jmp ctx_switch
-cli
-hlt
 switch_end:
 ret
 ctx_switch:
@@ -159,30 +156,30 @@ je ctx_switch_fail
 mov dword esp, [eax+16]
 sub esp, 32
 mov dword ebx, [eax+12]
-mov dword [esp+28], ebx;eip
+mov dword [esp], ebx;eip
 mov dword ebx, [eax+20]
-mov dword [esp], ebx;ebp
+mov dword [esp+4], ebx;ebp
 mov dword ebx, [eax+24]
-mov dword [esp+4], ebx;eax
+mov dword [esp+8], ebx;eax
 mov dword ebx, [eax+28]
-mov dword [esp+8], ebx;ebx
+mov dword [esp+12], ebx;ebx
 mov dword ebx, [eax+32]
-mov dword [esp+12], ebx;ecx
+mov dword [esp+16], ebx;ecx
 mov dword ebx, [eax+36]
-mov dword [esp+16], ebx;edx
+mov dword [esp+20], ebx;edx
 mov dword ebx, [eax+40]
-mov dword [esp+20], ebx;esi
+mov dword [esp+24], ebx;esi
 mov dword ebx, [eax+44]
-mov dword [esp+24], ebx;edi
-mov dword ebp, [esp]
-mov dword eax, [esp+4]
-mov dword ebx, [esp+8]
-mov dword ecx, [esp+12]
-mov dword edx, [esp+16]
-mov dword esi, [esp+20]
-mov dword edi, [esp+24]
-add esp, 28
-ret
+mov dword [esp+28], ebx;edi
+pop edi
+pop esi
+pop edx
+pop ecx
+pop ebx
+pop eax
+pop ebp
+add esp, 4
+call [esp-32]
 ctx_switch_fail:
 cli
 hlt
@@ -203,6 +200,13 @@ call scheduler_init
 timer_change:
 add dword [time_ms], 1
 jmp timer_end
+mov dword eax, [scheduler_info+16]
+cmp eax, 0
+je timer_end
+sub esp, 4
+mov dword [esp], 0
+call switch_task
+add esp, 4
 timer_end:
 ret
 default_master_isr:

@@ -32,19 +32,20 @@ struct thread_t* thread_create(uint32_t eip, uint32_t stack_size, void* arg){
 		return NULL;	
 	}
 	newthread->state.esp = newthread->stack_start+stack_size;
-	newthread->state.ebp = newthread->state.esp;
-	newthread->blink = last_thread;
-	if (last_thread)
-		last_thread->flink = newthread;
 	unsigned int* pstack = (unsigned int*)newthread->state.esp;
 	pstack--;
 	*pstack = (unsigned int)arg;
 	pstack--;
+	*pstack = 0;
 	newthread->state.esp = (uint32_t)pstack;
-	newthread->flink = first_thread;
-	last_thread = newthread;
-	if (!first_thread)
+	newthread->flink = (struct thread_t*)first_thread;
+	newthread->blink = last_thread;
+	if (last_thread)
+		last_thread->flink = newthread;
+	if (!first_thread){
 		first_thread = newthread;
+	}
+	last_thread = newthread;
 	if (newthread->status!=THREAD_FREE)
 		threads_created++;
 	newthread->state.eip = eip;

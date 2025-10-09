@@ -5,6 +5,7 @@
 #include "elf.h"
 #include "reb.h"
 #include "timer.h"
+#include "thread.h"
 #include "loader.h"
 int loader_genargs(char* arg, char*** pppargs, unsigned int* pargc){
 	if (!arg||!pppargs||!pargc)
@@ -132,10 +133,30 @@ int load_elf(unsigned int drive, char* filename, char* arg){
 	unsigned int argc = 0;
 	char** argp = (char**)0x0;
 	loader_genargs(arg, &argp, &argc);
+	struct procinfo_t* pinfo = (struct procinfo_t*)kmalloc(sizeof(struct procinfo_t));
+	if (!pinfo){
+		printf("failed to allocate memory for process info\n");
+		kfree((void*)pimage);
+		kfree((void*)argp);
+		return -1;
+	}
+	pinfo->argp = argp;
+	pinfo->argc = argc;
+	pinfo->pimage = (void*)pimage;
+	pinfo->pentry = (void*)(entry);
 	entry(argp, argc);
-	printf("program finished execution\n");
 	kfree((void*)pimage);
 	kfree((void*)argp);
+	struct thread_t* pinit_thread = (struct thread_t*)thread_create((uint32_t)(proc_bootstrap), 0x1000, (void*)pinfo);
+	if (!pinit_thread){
+		printf("failed to create bootstrap thread\n");
+		kfree((void*)pimage);
+		kfree((void*)argp);
+		return -1;
+	}
+	printf("switching to bootstrapper task\n");
+	switch_task((struct thread_t*)0x0);
+	printf("program finished\n");
 	return 0;
 }
 int load_bin(unsigned int drive, char* filename, char* arg){

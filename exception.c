@@ -47,6 +47,7 @@ void exception_handler(uint32_t exception, uint32_t eax, uint32_t ebx, uint32_t 
 	printf("eip: %p  cs: %p  flags: %p\n", eip, cs, flags);
 	printf("eax: %p  ebx: %p  ecx: %p\n", eax, ebx, ecx);
 	printf("edx: %p  ebp: %p  esp: %p\n", edx, ebp, esp);
+	play_sound(1000);
 	for (unsigned int i = 0;i<16;i++){
 		printf("0x%X, ", *(unsigned char*)(eip+i));
 	}

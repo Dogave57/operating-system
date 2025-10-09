@@ -146,6 +146,7 @@ int _start(char** argp, unsigned int argc){
 	unsigned int jmpCooldown = 0;
 	unsigned int gravityCooldown = 0;
 	while (1){
+		sys_sleep(1);
 		unsigned int time_ms = sys_get_time_ms();
 		if (sys_keypressed(KEY_ESC)){
 			if (deinit_pipes()!=0)

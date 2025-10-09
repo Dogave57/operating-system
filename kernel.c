@@ -71,13 +71,15 @@ void kentry(void){
 	}
 	struct highlow_64 sectors = drive_getsectors(bootdrive);
 	printf("drive sectors: %d\n", sectors.low);
-	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, (void*)0x1);
+/*	struct thread_t* thread = thread_create((uint32_t)test_thread, 0x1000, (void*)0x1);
 	if (!thread)
 		panic("failed to created test thread\n");
 	struct thread_t* thread2 = thread_create((uint32_t)test_thread2, 0x1000, (void*)0x2);
 	if (!thread2)
 		panic("failed to created test thread 2\n");
 	struct thread_t* thread3 = thread_create((uint32_t)test_thread3, 0x1000, (void*)0x3);
+	if (!thread3)
+		panic("failed to create test thread 3\n");*/
 	for (unsigned int bus = 0;bus<256;bus++){
 		for (unsigned int dev = 0;dev<32;dev++){
 			for (unsigned int func = 0;func<8;func++){
@@ -140,7 +142,7 @@ void kentry(void){
 	printf("%dmb of memory installed\n", meminfo->size);
 	printf("memory speed: %dmhz\n", meminfo->speed);
 	if (mem_manufacturer_name)
-		printf("manufacturer: %s\n", mem_manufacturer_name);	
+		printf("manufacturer: %s\n", mem_manufacturer_name);
 	struct smbios_biosinfo* biosinfo = smbios_get_biosinfo();
 	struct smbios_moboinfo* moboinfo = smbios_get_moboinfo();
 	if (moboinfo){
@@ -178,9 +180,8 @@ void kentry(void){
 //	while (1){
 //		scan(buf, sizeof(buf)-1, 0);
 //	};
-	set_multithreading(1);
 	clear();
-	switch_task(thread);
+//	switch_task((struct thread_t*)thread);
 	load_elf(bootdrive, "programs/shell.elf", "skibap toilet");
 	while (1){};
 	return;	
@@ -190,9 +191,9 @@ void test_thread(void* arg){
 	t = 1;
 	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
-		sleep(500);
-		printf("test thread %d running in loop...\n", t);
-		switch_task((struct thread_t*)0x0);
+		sleep(1000);
+		play_sound(400);
+		printf("test thread %d running in loop\n", t);
 	}
 	return;
 }
@@ -201,9 +202,9 @@ void test_thread2(void* arg){
 	t = 2;
 	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
-		sleep(1000);
+		sleep(2000);
+		play_sound(200);	
 		printf("test thread %d running in loop\n", t);
-		switch_task((struct thread_t*)0x0);
 	}
 	return;
 }
@@ -212,9 +213,9 @@ void test_thread3(void* arg){
 	t = 3;
 	printf("test thread %d started with arg %p\n", t, (void*)arg);
 	while (1){
-		sleep(200);
+		sleep(3000);
+		play_sound(600);
 		printf("test thread %d running in loop\n", t);
-		switch_task((struct thread_t*)0x0);
 	}
 	return;
 }
@@ -273,6 +274,7 @@ void keyboard_interrupt(void){
 			keys_pressed[KEY_RARROW] = 0;
 		return;
 	}
+
 	char ascii = scantoascii[scancode];
 	if (!ascii){
 		if (scancode>0x80&&scantoascii[scancode-0x80])
@@ -284,6 +286,10 @@ void keyboard_interrupt(void){
 		return;
 	}
 	keys_pressed[ascii] = 1;
+	if (keys_pressed[KEY_ESC]&&keys_pressed['d']){
+		__asm__ volatile("int $1");
+		__asm__ volatile("hlt");
+	}
 	if (capsPressed||shiftPressed)
 		ascii = toUpper(ascii);	
 	current_char = ascii;

@@ -237,8 +237,10 @@ int scan(char* buffer, unsigned int bufmax, unsigned char end){
 		return -1;
 	for (unsigned int i = 0;i<bufmax;){
 		unsigned char ch = 0;
-		while (!ch)
+		while (!ch){
 			ch = sys_getchar();
+			sys_sleep(5);
+		}
 		sys_putchar(ch);
 		if (ch==end){
 			buffer[i] = 0;

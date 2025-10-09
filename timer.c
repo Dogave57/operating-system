@@ -21,7 +21,9 @@ void set_pit_frequency(unsigned int freq){
 }
 void sleep(unsigned int ms){
 	unsigned int before = time_ms;
-	while ((time_ms-before)<ms){};
+	while ((time_ms-before)<ms){
+		switch_task((struct thread_t*)0x0);
+	};
 	return;
 }
 void set_multithreading(unsigned int value){
