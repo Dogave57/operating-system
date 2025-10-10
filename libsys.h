@@ -50,4 +50,5 @@ int sys_writerect(struct vector2 position, struct vector2 size, enum vgaColor co
 int sys_writecoord(unsigned int x, unsigned int y, enum vgaColor color);
 int sys_set_char_position(unsigned int position);
 int sys_switchtask(struct thread_t* ptask);
+int sys_load_binary(unsigned int drive, char* filename, char* arg);
 #endif

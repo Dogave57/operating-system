@@ -43,6 +43,7 @@ global sys_writerect
 global sys_writecoord
 global sys_set_char_position
 global sys_switchtask
+global sys_load_binary
 sys_putchar:
 xor edx, edx
 int 90h
@@ -221,5 +222,9 @@ int 90h
 ret
 sys_switchtask:
 mov edx, 44
+int 90h
+ret
+sys_load_binary:
+mov edx, 45
 int 90h
 ret

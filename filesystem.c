@@ -145,7 +145,6 @@ int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 			continue;
 		}	
 		entry_data[entry_index] = 0x1;
-		printf("index %d|sector %d\n", entry_index, entry_sector);
 		if (write_sectors(drive, entry_sector, 1, (uint16_t*)entry_data, 256)!=0){
 			printf("failed to write data\n");
 			return -1;
@@ -163,7 +162,6 @@ int epic_alloc_cluster(unsigned int drive, unsigned int* pcluster){
 		}
 		last_sector = entry_sector;
 		*pcluster = i;
-		printf("successfully allocated cluster\n");
 		return 0;
 	}	
 	printf("failed to find free cluster\n");
@@ -415,8 +413,6 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 	struct epic_file* pfilemd = (struct epic_file*)(filedata_blob+file_offset);
 	if (!pfilemd->inuse||pfilemd->type==FILE_INVALID)
 		return 0;
-	printf("parent cluster: %d\n", pfilemd->parent_cluster);
-	printf("cluster: %d\noffset: %d\n", pfilemd->file_cluster, pfilemd->file_offset);
 	if (!pfilemd->parent_cluster){
 		fsinfo.files_inroot--;
 		if (epic_set_fsinfo(drive, fsinfo)!=0)
@@ -432,9 +428,6 @@ int epic_freefile(unsigned int drive, unsigned int file_cluster, unsigned int fi
 		if (epic_write_clusterdata(drive, pfilemd->parent_cluster, parentmd_clusterdata)!=0)
 			return -1;
 	}
-	printf("cluster %d\n", file_cluster);
-	printf("offset: %d\n", file_offset);
-	printf("%s parent cluster: %d\n", pfilemd->filename, pfilemd->parent_cluster);
 	pfilemd->inuse = 0;
 	pfilemd->size = 0;
 	if (epic_write_clusterdata(drive, file_cluster, filemd_clusterdata)!=0)
@@ -837,7 +830,6 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (!pfilemd->data)
 			pfilemd->data = new_cluster;
 		pfilemd->last_data_cluster = new_cluster;
-		printf("allocated cluster %d\n", new_cluster);
 	}
 	current_cluster = pfilemd->data;
 	for (unsigned int i = 0;i<clusters_needed;i++){
@@ -850,7 +842,6 @@ int writefile(struct file* pfile, unsigned char* buffer, unsigned int size){
 		if (i==clusters_needed-1&&dt){
 			towrite = dt;
 		}
-		printf("writing %d bytes to cluster %d\n", towrite, current_cluster);
 		memcpy((void*)pdata, (const void*)(buffer+(i*4096)), towrite);
 		if (epic_write_clusterdata(pfile->drive, current_cluster, pdata)!=0)
 			return -1;

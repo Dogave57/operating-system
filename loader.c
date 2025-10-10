@@ -44,23 +44,26 @@ int loader_genargs(char* arg, char*** pppargs, unsigned int* pargc){
 	*pargc = argc;
 	return 0;
 }
+int load_binary(unsigned int drive, char* filename, char* arg){
+	if (!filename||!arg)
+		return -1;
+	unsigned int filenamelen = strlen(filename);
+	char* extension = filename+filenamelen-4;
+	int status = -1;
+	if (filenamelen>3&&memcmp((void*)extension, ".elf", 5)==0){
+		status = load_elf(drive, filename, arg);
+	}
+	if (filenamelen>3&&memcmp((void*)extension, ".reb", 5)==0)
+		status = load_reb(drive, filename, arg);
+	return status;
+}
 int load_elf(unsigned int drive, char* filename, char* arg){
-	if (!filename)
+	if (!filename||!arg)
 		return -1;
 	unsigned int before_ms = time_ms;
-	int spaceindex = -1;
-	for (unsigned int i = 0;filename[i];i++){
-		if (filename[i]!=' ')
-			continue;
-		spaceindex = i;
-		filename[i] = 0;
-		break;
-	}
 	struct file* pfile = openfile(drive, filename);
 	if (!pfile)
 		return -1;
-	if (spaceindex!=-1)
-		filename[spaceindex] = ' ';
 	unsigned int filesize = getfilesize(pfile);
 	if (!filesize){
 		closefile(pfile);
@@ -157,6 +160,40 @@ int load_elf(unsigned int drive, char* filename, char* arg){
 	printf("switching to bootstrapper task\n");
 	switch_task((struct thread_t*)0x0);
 	printf("program finished\n");
+	return 0;
+}
+int load_reb(unsigned int drive, char* filename, char* arg){
+	if (!filename||!arg)	
+		return -1;
+	struct file* pfile = openfile(drive, filename);
+	if (!pfile)
+		return -1;
+	unsigned int filesize = getfilesize(pfile);
+	unsigned char* pimage = (unsigned char*)kmalloc(filesize);
+	if (!pimage){
+		closefile(pfile);
+		return -1;
+	}	
+	if (readfile(pfile, pimage)!=0){
+		closefile(pfile);
+		kfree((void*)pimage);
+		return -1;
+	}
+	closefile(pfile);
+	struct reb32_hdr* phdr = (struct reb32_hdr*)pimage;
+	if (!ISREB((unsigned char*)phdr)){
+		printf("invalid reb binary\n");
+		kfree((void*)pimage);
+		return -1;
+	}
+	programEntry entry = (programEntry)((phdr->imgdata+phdr->entry_off));
+	unsigned int argc = 0;
+	char** argp = (char**)0x0;
+	loader_genargs(arg, &argp, &argc);
+	entry(argp, argc);
+	printf("program finished execution\n");
+	kfree((void*)argp);
+	kfree((void*)pimage);
 	return 0;
 }
 int load_bin(unsigned int drive, char* filename, char* arg){

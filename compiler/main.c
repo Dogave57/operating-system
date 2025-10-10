@@ -1,8 +1,11 @@
 #include "../stdlib.h"
 #include "../libsys.h"
+#include "../reb.h"
 #include "compiler.h"
 #include "token.h"
+#include "asm.h"
 #include "bytecode.h"
+int build_reb(struct bytecode* pbytecode, char* filename);
 static unsigned int bootdrive = 0;
 int init_tokenlist(struct tokenlist_t** pptokenlist){
 	if (!pptokenlist)
@@ -66,26 +69,53 @@ int tokenize_file(char* filebuffer, struct tokenlist_t** pptokenlist){
 		printf("failed to initialize token list\n");
 		return -1;
 	}
-	unsigned int tokencnt = sizeof(token_map)/sizeof(struct token_mapping_t);
+	unsigned int tokencnt = (sizeof(token_map)/sizeof(struct token_mapping_t));
+	printf("token cnt: %d\n", tokencnt);
 	for (unsigned int i = 0;filebuffer[i];i++){
+		unsigned char ch = filebuffer[i];
+		if (ch==' ')
+			continue;
+		enum tokenType tokenType = TOKEN_INVALID;
 		for (unsigned int tok_id = 0;tok_id<tokencnt;tok_id++){
 			struct token_mapping_t mapping = token_map[tok_id];
-			if (!mapping.name||!mapping.len||!mapping.type)
+			if (!mapping.name)
 				continue;
-			if (memcmp((void*)(filebuffer+i), (void*)mapping.name, mapping.len)!=0){
-			continue;
-			}
+			if (memcmp((void*)(filebuffer+i), (void*)mapping.name, mapping.len)!=0)
+				continue;
 			struct token_t* pnewtoken = add_token(ptokenlist, mapping.type);
 			if (!pnewtoken){
-			printf("failed to create new token\n");
-			continue;
+				printf("failed to add token\n");
+				continue;
 			}
 			if (mapping.type==TOKEN_EOI){
-			ptokenlist->eoi_cnt++;
+				ptokenlist->eoi_cnt++;
 			}
+			tokenType = mapping.type;
 			i+=mapping.len-1;
+			printf("token %d", mapping.type);
 			break;
 		}
+		if (tokenType!=TOKEN_INVALID)
+			continue;
+		unsigned int dword = 0;
+		unsigned int fail = 0;
+		for (;filebuffer[i];i++){
+			unsigned char ch = filebuffer[i];
+			if (ch==','||ch=='\n')
+				break;
+			if (ch<'0'||ch>'9'){
+				fail = 1;
+				printf("unexpected '%c'\n", ch);
+				break;
+			}
+			unsigned char digit = ch-'0';
+			dword = dword * 10 + digit;
+		}
+		if (fail){
+			printf("tokenization failed\n");
+			return -1;
+		}
+		printf("dword: %d", dword);
 	}
 	struct token_t* current_token = ptokenlist->pstart;
 	while (current_token){
@@ -138,10 +168,45 @@ int compile_file(char* filename){
 		deinit_tokenlist(ptokenlist);
 		return -1;
 	}
-	printf("pbytecode: %p\n", (void*)pbytecode->pbuffer);
-	printf("bytecode size: %d\n", pbytecode->buffer_size);
+	struct token_t* ptoken = ptokenlist->pstart;
+	unsigned int fail = 0;
+	while (ptoken){
+		switch (ptoken->type){
+			case TOKEN_RET:{
+			printf("emitting ret");
+			bytecode_emit(pbytecode, 1, OP_RET);
+			break;
+			}
+			case TOKEN_INT:{
+			struct token_t* argtoken = ptoken->flink;
+		        if (!argtoken||argtoken->type!=TOKEN_DWORD){
+				printf("expected byte after INT instruction\n");
+				fail = 1;
+				break;
+			}	
+				  
+			break;		
+       		       	}
+		}
+		if (fail)
+			break;
+		ptoken = ptoken->flink;
+	}
+	if (fail){
+		printf("compilation failed\n");
+		deinit_tokenlist(ptokenlist);
+		bytecode_deinit(pbytecode);
+		return -1;
+	}
+	if (build_reb(pbytecode, "output.reb")!=0){
+		printf("failed to build relocatable executable binary\n");
+		deinit_tokenlist(ptokenlist);
+		bytecode_deinit(pbytecode);
+		return -1;
+	}
 	if (deinit_tokenlist(ptokenlist)!=0){
 		printf("failed to deinit token list\n");
+		bytecode_deinit(pbytecode);
 		return -1;
 	}
 	if (bytecode_deinit(pbytecode)!=0){
@@ -150,15 +215,58 @@ int compile_file(char* filename){
 	}
 	return 0;
 }
+int build_reb(struct bytecode* pbytecode, char* filename){
+	if (!pbytecode||!filename)
+		return -1;
+	if (!pbytecode->pbuffer||!pbytecode->buffer_used||!pbytecode->buffer_size){
+		printf("invalid bytecode buffer\n");
+		printf("pbuffer: %p\n", (void*)pbytecode->pbuffer);
+		return -1;
+	}
+	unsigned char* pcode = pbytecode->pbuffer;
+	unsigned int binary_size = pbytecode->buffer_used+sizeof(struct reb32_hdr);
+	unsigned int bytecode_size = pbytecode->buffer_used;
+	bytecode_size+=4-(bytecode_size%4);
+	unsigned int imagesize = sizeof(struct reb32_hdr)+bytecode_size;
+	struct reb32_hdr* pimage = (struct reb32_hdr*)sys_kmalloc(imagesize);
+	unsigned char* imgdata = pimage->imgdata;
+	pimage->signature = REB_SIGNATURE;
+	pimage->type = REB_TYPE_EXEC;
+	pimage->prefered_base = (unsigned int)pimage;
+	pimage->bss_size = 0;
+	pimage->entry_off = 0;
+	pimage->reloc_entrycnt = 0;
+	memcpy((void*)(imgdata), (void*)pbytecode->pbuffer, bytecode_size);
+	if (sys_createfile(bootdrive, filename, FILE_REGULAR)!=0){
+		printf("failed to create file\n");
+		sys_kfree((void*)pimage);
+		return -1;
+	}
+	struct file* pfile = (struct file*)sys_openfile(bootdrive, filename);
+	if (!pfile){
+		printf("failed to open output file\n");
+		sys_kfree((void*)pimage);
+		return -1;
+	}
+	if (sys_writefile(pfile, (unsigned char*)pimage, imagesize)!=0){
+		printf("failed to write to output file\n");
+		sys_kfree((void*)pimage);
+		sys_closefile(pfile);
+		return -1;
+	}
+	sys_closefile(pfile);
+	printf("successfully created a relocatable executable binary\n");
+	return 0;
+}
 int _start(char** argp, unsigned int argc){
-	if (!argp||argc<2){
+	if (!argp||argc<1){
 		printf("no arguments provided\n");
 		return -1;
 	}
 	bootdrive = sys_getbootdrive();
-	unsigned int filecnt = argc-1;
+	unsigned int filecnt = argc;
 	for (unsigned int i = 0;i<filecnt;i++){
-		char* filename = argp[i+1];
+		char* filename = argp[i];
 		if (!filename)
 			continue;
 		if (compile_file(filename)!=0){

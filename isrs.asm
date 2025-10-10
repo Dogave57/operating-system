@@ -82,6 +82,7 @@ extern vga_draw_rect
 extern vga_write_coord
 extern vga_set_char_position
 extern switch_task
+extern load_binary
 switchmsg db "ctx switch", 10, 0
 tpmsg db "new thread: %p", 10, 0
 eipmsg db "eip: %p", 10, 0
@@ -633,6 +634,8 @@ cmp edx, 43
 je vga_set_char_position
 cmp edx, 44
 je switch_task
+cmp edx, 45
+je load_binary
 syscall_end:
 ret
 ebxmsg db "edx %d", 0

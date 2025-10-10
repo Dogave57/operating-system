@@ -4,8 +4,7 @@
 #include "stdlib.h"
 #include "memory.h"
 #define align_up(val, align)((val+align-1) & ~(align-1))
-struct heap_metadata* heap_data = (struct heap_metadata*)NULL;
-struct heap_block* largestFreeBlock = (struct heap_block*)NULL;
+struct heap_metadata heap_metadata = {0};
 unsigned int avalibleMemory = 0;
 uint64_t installedMemory = 0;
 unsigned int getAvalibleMemory(void){
@@ -35,68 +34,45 @@ uint64_t getInstalledMemory(void){
 	return installedMemory;
 }
 int heap_init(void){
-	struct heap_block* firstblock = (struct heap_block*)NULL;
-	heap_data = (struct heap_metadata*)3000000;
-	firstblock = (struct heap_block*)(heap_data+1);
-	heap_data->firstblock = (struct heap_block*)(firstblock);
-	heap_data->heap_reserved = getInstalledMemory()-(unsigned int)heap_data;
-	heap_data->freeblock_cnt = 0;
-	heap_data->freelist = (struct heap_block**)((unsigned char*)heap_data->firstblock+heap_data->heap_reserved);
+	heap_metadata.heapstart = (unsigned char*)2000000;
+	unsigned int installedMem = (unsigned int)getInstalledMemory();
+	unsigned int heap_reserved = installedMem-(unsigned int)heap_metadata.heapstart;
+	heap_metadata.pfreelist = (unsigned int*)(heap_metadata.heapstart+heap_reserved-4);
 	return 0;
 }
 void* kmalloc(size_t size){
-	if (!heap_data){
-		if (heap_init()!=0)
-			return NULL;
+	if (!heap_metadata.firstblock){
+		heap_metadata.firstblock = (struct heap_block*)heap_metadata.heapstart;
+		heap_metadata.firstblock->inuse = 1;
+		heap_metadata.firstblock->datasize = size;
+		heap_metadata.currentblock = heap_metadata.firstblock;
+		return (void*)(heap_metadata.firstblock+1);
 	}
-	if (size<1)
-		return NULL;
-	size = align_up(size, 4);
-	if (size>heap_data->heap_reserved){
-		return NULL;
-	}
-	heap_data->heapused+=size;
-	if (heap_data->heapused>heap_data->heap_reserved){
-		panic("out of memory");
-		return NULL;
-	}
-	if (!heap_data->currentblock){
-		heap_data->currentblock = heap_data->firstblock;
-		heap_data->currentblock->datasize = size;
-		heap_data->currentblock->inuse = 1;
-		heap_data->firstblock = heap_data->currentblock;
-		return (void*)(heap_data->currentblock+1);
-	}
-	if (heap_data->freeblock_cnt!=0){
-		for (unsigned int i = 0;i<heap_data->freeblock_cnt;i++){
-			struct heap_block* pblock = (struct heap_block*)(*(heap_data->freelist-heap_data->freeblock_cnt+i));
-			if (!pblock||pblock->inuse!=0||pblock->datasize<size){
-			continue;
-			}
+	if (heap_metadata.freeblockcnt){
+		for (unsigned int i = 0;i<heap_metadata.freeblockcnt;i++){
+			struct heap_block* pblock = (struct heap_block*)(heap_metadata.pfreelist[-i]);
+			if (!pblock||pblock->inuse!=0||pblock->datasize<size)
+				continue;
 			unsigned int dt = pblock->datasize-size;
 			if (dt&&dt>sizeof(struct heap_block)){
-			pblock->datasize = size;
-			struct heap_block* newblock = (struct heap_block*)((unsigned char*)(pblock+1)+pblock->datasize);
-			pblock->flink->blink = newblock;
-			pblock->flink = newblock;
-			newblock->blink = newblock;
-			newblock->inuse = 0;
-			newblock->datasize = dt-sizeof(struct heap_block);
-			}else{
-			heap_data->freeblock_cnt--;
-			}
+				struct heap_block* pdtblock = (struct heap_block*)(pblock->data+size);
+				pdtblock->datasize = dt;
+				pdtblock->inuse = 0;
+				heap_metadata.pfreelist[-i] = (unsigned int)pdtblock;
+			}else
+				heap_metadata.freeblockcnt--;
 			pblock->inuse = 1;
+			pblock->datasize = size;
 			return (void*)(pblock+1);
-		}	
+		}
 	}
-	if (heap_data->currentblock){
-		uint32_t offset = heap_data->currentblock->datasize+sizeof(struct heap_block);
-		struct heap_block* newblock = (struct heap_block*)(((unsigned char*)heap_data->currentblock)+offset);
+	if (heap_metadata.currentblock){
+		struct heap_block* newblock = (struct heap_block*)(heap_metadata.currentblock->data+heap_metadata.currentblock->datasize);
 		newblock->datasize = size;
 		newblock->inuse = 1;
-		newblock->blink = heap_data->currentblock;
-		heap_data->currentblock->flink = newblock;
-		heap_data->currentblock = newblock;
+		heap_metadata.currentblock->flink = newblock;
+		newblock->blink = heap_metadata.currentblock;
+		heap_metadata.currentblock = newblock;
 		return (void*)(newblock+1);
 	}
 	return NULL;
@@ -104,11 +80,11 @@ void* kmalloc(size_t size){
 int kfree(void* data){
 	if (!data)
 		return -1;
-	struct heap_block* heapblock = (struct heap_block*)((unsigned char*)data-sizeof(struct heap_block));
-	heap_data->heapused -= heapblock->datasize;
-	*(heap_data->freelist-heap_data->freeblock_cnt) = heapblock;
-	heapblock->inuse = 0;
-	heap_data->freeblock_cnt++;
+	struct heap_block* pblock = (struct heap_block*)data;
+	pblock--;
+	pblock->inuse = 0;
+	heap_metadata.freeblockcnt++;
+	heap_metadata.pfreelist[-heap_metadata.freeblockcnt] = (unsigned int)pblock;	
 	return 0;
 }
 

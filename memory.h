@@ -12,19 +12,21 @@ struct memorymap_entry{
 	uint32_t type;
 	uint32_t acpi;
 };
+struct heap_metadata{
+	unsigned int heap_reserved;
+	unsigned int heapused;
+	unsigned char* heapstart;
+	struct heap_block* firstblock;
+	struct heap_block* currentblock;
+	unsigned int freeblockcnt;
+	unsigned int* pfreelist;
+};
 struct heap_block{
 	unsigned int datasize;
 	unsigned int inuse;
 	struct heap_block* flink;
 	struct heap_block* blink;
-};
-struct heap_metadata{
-	unsigned int heap_reserved;
-	unsigned int heapused;
-	unsigned int freeblock_cnt;
-	struct heap_block** freelist;
-	struct heap_block* firstblock;
-	struct heap_block* currentblock;
+	unsigned char data[];
 };
 unsigned int getAvalibleMemory(void);
 uint64_t getInstalledMemory(void);

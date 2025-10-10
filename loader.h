@@ -9,6 +9,8 @@ struct procinfo_t{
 };
 int proc_bootstrap(struct procinfo_t* parg);
 int loader_genargs(char* arg, char*** pppargs, unsigned int* pargc);
+int load_binary(unsigned int drive, char* filename, char* arg);
 int load_elf(unsigned int drive, char* filename, char* arg);
+int load_reb(unsigned int drive, char* filename, char* arg);
 int load_bin(unsigned int drive, char* filename, char* arg);
 #endif

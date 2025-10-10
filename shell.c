@@ -35,8 +35,20 @@ void shell_run(char* cmd, unsigned int cmdlen){
 		return;
 	unsigned int bootdrive = sys_getbootdrive();
 	printf("%s\n", cmd+4);
-	if (sys_loadelf(bootdrive, cmd+4, cmd+4)==0)
+	int argstart = -1;
+	for (unsigned int i = 4;cmd[i];i++){
+		char ch = cmd[i];
+		if (ch!=' ')
+			continue;
+		cmd[i] = 0;
+		argstart = i;
+	}
+	int status = sys_load_binary(bootdrive, cmd+4, cmd+argstart+1);
+	if (argstart!=-1)
+		cmd[argstart] = ' ';
+	if (!status)
 		return;
+	return;
 }
 void shell_clear(char* cmd, unsigned int cmdlen){
 	sys_clear();

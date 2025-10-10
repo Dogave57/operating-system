@@ -29,10 +29,10 @@ int move_cursor(unsigned int new_position){
 int _start(char** argp, unsigned int argc){
 	if (!argp)
 		return -1;
-	if (argc<2){
+	if (argc<1){
 		return -1;
 	}
-	char* filename = argp[1];
+	char* filename = argp[0];
 	sys_clear();
 	printf("loading file %s\n", filename);
 	printf("Welcome to text edit\n");
