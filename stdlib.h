@@ -11,7 +11,7 @@ int strcpy(char* dest, const char* src);
 int memset(void* buf, unsigned char val, size_t size);
 char toUpper(char ch);
 char toLower(char ch);
-void* kmalloc(size_t size);
+void* kmalloc(unsigned int size);
 int kfree(void* data);
 int printf(const char* fmt, ...);
 int scan(char* buf, unsigned int bufmax, unsigned char end);

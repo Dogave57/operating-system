@@ -14,7 +14,6 @@ struct memorymap_entry{
 };
 struct heap_metadata{
 	unsigned int heap_reserved;
-	unsigned int heapused;
 	unsigned char* heapstart;
 	struct heap_block* firstblock;
 	struct heap_block* currentblock;
@@ -24,8 +23,6 @@ struct heap_metadata{
 struct heap_block{
 	unsigned int datasize;
 	unsigned int inuse;
-	struct heap_block* flink;
-	struct heap_block* blink;
 	unsigned char data[];
 };
 unsigned int getAvalibleMemory(void);

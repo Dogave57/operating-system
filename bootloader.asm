@@ -112,7 +112,7 @@ mov gs, ax
 mov ss, ax
 mov es, ax
 mov fs, ax
-mov esp, 200000
+mov esp, 2000000
 lidt [0x0]
 jmp 0x08:0x9030
 hlt

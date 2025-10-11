@@ -70,7 +70,6 @@ int tokenize_file(char* filebuffer, struct tokenlist_t** pptokenlist){
 		return -1;
 	}
 	unsigned int tokencnt = (sizeof(token_map)/sizeof(struct token_mapping_t));
-	printf("token cnt: %d\n", tokencnt);
 	for (unsigned int i = 0;filebuffer[i];i++){
 		unsigned char ch = filebuffer[i];
 		if (ch==' ')
@@ -99,10 +98,31 @@ int tokenize_file(char* filebuffer, struct tokenlist_t** pptokenlist){
 			continue;
 		unsigned int dword = 0;
 		unsigned int fail = 0;
+		unsigned int hex = (filebuffer[i]=='0'&&filebuffer[i+1]=='x');
+		unsigned int hex_position = 0;
+		if (hex)
+			i+=2;
 		for (;filebuffer[i];i++){
-			unsigned char ch = filebuffer[i];
-			if (ch==','||ch=='\n')
+			if (hex&&hex_position>8)
 				break;
+			unsigned char ch = filebuffer[i];
+			if (ch==','||ch=='\n'||ch==';')
+				break;
+			if ((ch>'A'-1&&ch<'F'+1)&&hex){
+				unsigned char digit = ch-'A'+10;
+				dword = dword * 16 + digit;
+				continue;	
+			}
+			if ((ch>'a'-1&&ch<'f'+1)&&hex){
+				unsigned char digit = ch-'a'+10;
+				dword = dword * 16 + digit;
+				continue;
+			}
+			if (hex){
+				unsigned char digit = ch-'0';
+				dword = dword * 16 + digit;
+				continue;
+			}
 			if (ch<'0'||ch>'9'){
 				fail = 1;
 				printf("unexpected '%c'\n", ch);
@@ -115,7 +135,13 @@ int tokenize_file(char* filebuffer, struct tokenlist_t** pptokenlist){
 			printf("tokenization failed\n");
 			return -1;
 		}
-		printf("dword: %d", dword);
+		printf("dword: %x\n", dword);
+		struct token_t* pnewtoken = add_token(ptokenlist, TOKEN_DWORD);
+		if (!pnewtoken){
+			printf("failed to add DWORD token\n");
+			continue;
+		}
+		*((unsigned int*)pnewtoken->metadata) = dword;
 	}
 	struct token_t* current_token = ptokenlist->pstart;
 	while (current_token){
@@ -184,9 +210,21 @@ int compile_file(char* filename){
 				fail = 1;
 				break;
 			}	
-				  
+			bytecode_emit(pbytecode, 2, OP_INT, argtoken->metadata[0]);			
 			break;		
        		       	}
+			case TOKEN_STI:{
+			bytecode_emit(pbytecode, 1, OP_STI);
+			break;
+			};
+			case TOKEN_CLI:{
+			bytecode_emit(pbytecode, 1, OP_CLI);
+			break;
+			};
+			case TOKEN_HLT:{
+			bytecode_emit(pbytecode, 1, OP_HLT);
+			break;
+			};
 		}
 		if (fail)
 			break;
@@ -228,6 +266,7 @@ int build_reb(struct bytecode* pbytecode, char* filename){
 	unsigned int bytecode_size = pbytecode->buffer_used;
 	bytecode_size+=4-(bytecode_size%4);
 	unsigned int imagesize = sizeof(struct reb32_hdr)+bytecode_size;
+	imagesize+=4-(imagesize%4);
 	struct reb32_hdr* pimage = (struct reb32_hdr*)sys_kmalloc(imagesize);
 	unsigned char* imgdata = pimage->imgdata;
 	pimage->signature = REB_SIGNATURE;
@@ -237,16 +276,15 @@ int build_reb(struct bytecode* pbytecode, char* filename){
 	pimage->entry_off = 0;
 	pimage->reloc_entrycnt = 0;
 	memcpy((void*)(imgdata), (void*)pbytecode->pbuffer, bytecode_size);
-	if (sys_createfile(bootdrive, filename, FILE_REGULAR)!=0){
-		printf("failed to create file\n");
-		sys_kfree((void*)pimage);
-		return -1;
-	}
 	struct file* pfile = (struct file*)sys_openfile(bootdrive, filename);
 	if (!pfile){
-		printf("failed to open output file\n");
-		sys_kfree((void*)pimage);
-		return -1;
+		sys_createfile(bootdrive, filename, FILE_REGULAR);
+		pfile = (struct file*)sys_openfile(bootdrive, filename);
+		if (!pfile){
+			printf("failed to open output file\n");
+			sys_kfree((void*)pimage);
+			return -1;
+		}
 	}
 	if (sys_writefile(pfile, (unsigned char*)pimage, imagesize)!=0){
 		printf("failed to write to output file\n");

@@ -195,17 +195,6 @@ mov dword eax, [first_thread]
 mov dword [esp], eax
 jmp ctx_switch
 ret
-timer_interrupt:
-cli
-mov dword eax, [scheduler_info+4]
-cmp eax, 0
-jne timer_change
-call scheduler_init
-timer_change:
-add dword [time_ms], 1
-jmp timer_end
-timer_end:
-ret
 default_master_isr:
 cli
 pusha
@@ -227,11 +216,17 @@ iret
 timer_isr:
 cli
 pushad
-call timer_interrupt
+mov dword eax, [scheduler_info+4]
+cmp eax, 0
+jne timer_change
+call scheduler_init
+timer_change:
+add dword [time_ms], 1
 mov al, 0x20
 mov dx, 0x20
 out dx, al
 popad
+sti
 iret
 keyboard_isr:
 cli

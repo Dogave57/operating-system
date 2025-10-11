@@ -34,46 +34,50 @@ uint64_t getInstalledMemory(void){
 	return installedMemory;
 }
 int heap_init(void){
+	memset((void*)&heap_metadata, 0, sizeof(struct heap_metadata));
 	heap_metadata.heapstart = (unsigned char*)2000000;
 	unsigned int installedMem = (unsigned int)getInstalledMemory();
 	unsigned int heap_reserved = installedMem-(unsigned int)heap_metadata.heapstart;
 	heap_metadata.pfreelist = (unsigned int*)(heap_metadata.heapstart+heap_reserved-4);
 	return 0;
 }
-void* kmalloc(size_t size){
-	if (!heap_metadata.firstblock){
-		heap_metadata.firstblock = (struct heap_block*)heap_metadata.heapstart;
-		heap_metadata.firstblock->inuse = 1;
-		heap_metadata.firstblock->datasize = size;
-		heap_metadata.currentblock = heap_metadata.firstblock;
-		return (void*)(heap_metadata.firstblock+1);
+void* kmalloc(unsigned int size){
+	size = align_up(size, 4);	
+	if (!heap_metadata.currentblock){
+		heap_metadata.currentblock = (struct heap_block*)heap_metadata.heapstart;
+		heap_metadata.currentblock->datasize = size;
+		heap_metadata.currentblock->inuse = 1;
+		return (void*)(heap_metadata.currentblock+1);
 	}
 	if (heap_metadata.freeblockcnt){
 		for (unsigned int i = 0;i<heap_metadata.freeblockcnt;i++){
-			struct heap_block* pblock = (struct heap_block*)(heap_metadata.pfreelist[-i]);
+			struct heap_block* pblock = (struct heap_block*)(*(heap_metadata.pfreelist-i));
 			if (!pblock||pblock->inuse!=0||pblock->datasize<size)
 				continue;
 			unsigned int dt = pblock->datasize-size;
 			if (dt&&dt>sizeof(struct heap_block)){
 				struct heap_block* pdtblock = (struct heap_block*)(pblock->data+size);
-				pdtblock->datasize = dt;
+				pdtblock->datasize = dt-sizeof(struct heap_block);
 				pdtblock->inuse = 0;
-				heap_metadata.pfreelist[-i] = (unsigned int)pdtblock;
-			}else
+				*(heap_metadata.pfreelist-i) = (unsigned int)pdtblock;
+				if (pdtblock>heap_metadata.currentblock)
+					heap_metadata.currentblock = pdtblock;
+			}
+			else{
+				*(heap_metadata.pfreelist-i) = (unsigned int)0;
 				heap_metadata.freeblockcnt--;
+			}
 			pblock->inuse = 1;
 			pblock->datasize = size;
 			return (void*)(pblock+1);
 		}
 	}
 	if (heap_metadata.currentblock){
-		struct heap_block* newblock = (struct heap_block*)(heap_metadata.currentblock->data+heap_metadata.currentblock->datasize);
-		newblock->datasize = size;
-		newblock->inuse = 1;
-		heap_metadata.currentblock->flink = newblock;
-		newblock->blink = heap_metadata.currentblock;
-		heap_metadata.currentblock = newblock;
-		return (void*)(newblock+1);
+		struct heap_block* pblock = (struct heap_block*)(heap_metadata.currentblock->data+heap_metadata.currentblock->datasize);
+		pblock->datasize = size;
+		pblock->inuse = 1;
+		heap_metadata.currentblock = pblock;
+		return (void*)(pblock+1);	
 	}
 	return NULL;
 }
@@ -83,8 +87,8 @@ int kfree(void* data){
 	struct heap_block* pblock = (struct heap_block*)data;
 	pblock--;
 	pblock->inuse = 0;
+	*(heap_metadata.pfreelist-heap_metadata.freeblockcnt) = (unsigned int)pblock;
 	heap_metadata.freeblockcnt++;
-	heap_metadata.pfreelist[-heap_metadata.freeblockcnt] = (unsigned int)pblock;	
 	return 0;
 }
 

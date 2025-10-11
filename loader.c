@@ -11,33 +11,38 @@ int loader_genargs(char* arg, char*** pppargs, unsigned int* pargc){
 	if (!arg||!pppargs||!pargc)
 		return -1;
 	unsigned int argc = 0;
-	unsigned int arglen = 0;
-	for (unsigned int i = 0;;i++){
-		if (arg[i]!=' '&&arg[i]!=0)
+	unsigned int arglen = 1;
+	for (;;arglen++){
+		if (arg[arglen]!=' '&&arg[arglen]!=0){
 			continue;
+		}
 		argc++;
-		arglen++;
-		if (!arg[i])
+		if (!arg[arglen]){
 			break;
+		}
 	}
 	if (!argc)
 		return -1;
+	printf("%s len %d cnt %d\n", arg, arglen, argc);
 	unsigned int pargsize = (sizeof(char*)*argc)+arglen;
 	char** ppargs = (char**)kmalloc(pargsize);
 	if (!ppargs)
 		return -1;
 	char* parg = ((char*)ppargs+(sizeof(char*)*argc));
+	memset((void*)parg, 0, arglen);
 	unsigned int argindex = 0;
 	unsigned int argstart = 0;
 	for (unsigned int i = 0;;i++){
-		parg[i] = arg[i];
-		if (arg[i]!=' '&&arg[i])
+		char ch = arg[i];
+		if (ch!=' '&&ch){
+			parg[i] = ch;
 			continue;
+		}
 		parg[i] = 0;
 		ppargs[argindex] = parg+argstart;
-		argstart = i+1;
 		argindex++;
-		if (!arg[i])
+		argstart = i+1;
+		if (!ch)
 			break;
 	}
 	*pppargs = ppargs;
@@ -150,6 +155,7 @@ int load_elf(unsigned int drive, char* filename, char* arg){
 	entry(argp, argc);
 	kfree((void*)pimage);
 	kfree((void*)argp);
+	return 0;
 	struct thread_t* pinit_thread = (struct thread_t*)thread_create((uint32_t)(proc_bootstrap), 0x1000, (void*)pinfo);
 	if (!pinit_thread){
 		printf("failed to create bootstrap thread\n");

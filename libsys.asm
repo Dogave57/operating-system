@@ -55,7 +55,7 @@ ret
 sys_puthex:
 mov edx, 2
 int 90h
-retn 
+ret
 sys_kmalloc:
 mov edx, 3
 int 90h

@@ -18,6 +18,9 @@ enum tokenType{
 	TOKEN_DWORD = 14,
 	TOKEN_SEPERATOR = 15,
 	TOKEN_INT = 16,
+	TOKEN_STI = 17,
+	TOKEN_CLI = 18,
+	TOKEN_HLT = 19,
 };
 struct token_mapping_t{
 	char* name;
@@ -53,5 +56,8 @@ static struct token_mapping_t token_map[] = {
 	{"add", 3, TOKEN_ADD},
 	{",", 1, TOKEN_SEPERATOR},
 	{"int", 3, TOKEN_INT},
+	{"sti", 3, TOKEN_STI},
+	{"cli", 3, TOKEN_CLI},
+	{"hlt", 3, TOKEN_HLT},
 };
 #endif
